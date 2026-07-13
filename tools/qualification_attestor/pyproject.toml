@@ -1,0 +1,16 @@
+[project]
+name = "alpha-founder-qualification-attestor"
+version = "0.1.0"
+description = "Read-only local attestation tool for Centaur qualification"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+qualification-attestor = "qualification_attestor.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qualification_attestor"]
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
