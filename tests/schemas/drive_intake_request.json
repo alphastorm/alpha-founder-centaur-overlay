@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "KnownFingerprint": {
+      "additionalProperties": false,
+      "description": "What Alpha Founder already holds for one file; an unchanged file is not re-sent.",
+      "properties": {
+        "md5_checksum": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Md5 Checksum"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256"
+      ],
+      "title": "KnownFingerprint",
+      "type": "object"
+    },
+    "SourceLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_file_bytes": {
+          "default": 536870912,
+          "maximum": 2147483648,
+          "minimum": 1,
+          "title": "Max File Bytes",
+          "type": "integer"
+        },
+        "max_files": {
+          "default": 500,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Files",
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "default": 2147483648,
+          "maximum": 17179869184,
+          "minimum": 1,
+          "title": "Max Total Bytes",
+          "type": "integer"
+        },
+        "max_depth": {
+          "default": 6,
+          "maximum": 16,
+          "minimum": 0,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "max_pages": {
+          "default": 50,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Pages",
+          "type": "integer"
+        }
+      },
+      "title": "SourceLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "alpha-founder.drive-intake-request.v1",
+      "default": "alpha-founder.drive-intake-request.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "binding_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "root_file_id": {
+      "pattern": "^[A-Za-z0-9_-]{10,128}$",
+      "title": "Root File Id",
+      "type": "string"
+    },
+    "root_kind": {
+      "enum": [
+        "file",
+        "folder"
+      ],
+      "title": "Root Kind",
+      "type": "string"
+    },
+    "intake_shape": {
+      "enum": [
+        "zip_file",
+        "zip_drops",
+        "company_folder"
+      ],
+      "title": "Intake Shape",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/SourceLimits"
+    },
+    "acquire": {
+      "default": true,
+      "title": "Acquire",
+      "type": "boolean"
+    },
+    "known": {
+      "maxProperties": 10000,
+      "patternProperties": {
+        "^[A-Za-z0-9_-]{10,128}$": {
+          "$ref": "#/$defs/KnownFingerprint"
+        }
+      },
+      "title": "Known",
+      "type": "object"
+    },
+    "upload_url": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Upload Url",
+      "type": "string"
+    },
+    "upload_token": {
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "title": "Upload Token",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "binding_id",
+    "root_file_id",
+    "root_kind",
+    "intake_shape",
+    "limits",
+    "upload_url",
+    "upload_token"
+  ],
+  "title": "DriveIntakeRequest",
+  "type": "object",
+  "$comment": "Exported from alpha_founder.drive_intake_contract at Alpha Founder commit 163eed54 (2026-10-06); generated with model_json_schema()."
+}
