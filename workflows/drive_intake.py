@@ -273,6 +273,14 @@ def _component(name: str) -> str:
     return value.replace(".", "%2E") if value in (".", "..") else value
 
 
+def _materialized_component(meta: dict) -> str:
+    name = _component(meta["name"])
+    export = EXPORTS.get(meta["mime_type"])
+    if export and not name.lower().endswith("." + export[0]):
+        name += "." + export[0]
+    return name
+
+
 def _acquisition(status: str, *, size=None, sha256=None, export=None, message="") -> dict:
     return {"status": status, "bytes": size, "sha256": sha256,
             "export_format": export, "message": message}
@@ -343,7 +351,7 @@ def _discover(inp: Input, client: DriveClient) -> dict:
         return {"result": result, "metadata": metadata}
     if inp["intake_shape"] == "zip_file":
         packet = _packet(root, "zip")
-        packet["items"].append(_item(root, _component(root["name"])))
+        packet["items"].append(_item(root, _materialized_component(root)))
         result["packets"].append(packet)
         metadata[root["file_id"]] = root
         return {"result": result, "metadata": metadata}
@@ -379,9 +387,15 @@ def _discover(inp: Input, client: DriveClient) -> dict:
                         return False
                     count += 1
                     seen.add(meta["file_id"])
-                    path = prefix + _component(meta["name"])
+                    component = _materialized_component(meta)
+                    path = prefix + component
                     while path in paths:
-                        path += "~" + meta["file_id"]
+                        stem, dot, suffix = component.rpartition(".")
+                        if dot and stem and suffix and meta["mime_type"] != FOLDER:
+                            component = stem + "~" + meta["file_id"] + dot + suffix
+                        else:
+                            component += "~" + meta["file_id"]
+                        path = prefix + component
                     paths.add(path)
                     if company_packet is not None and meta["mime_type"] == FOLDER:
                         if depth >= limits["max_depth"]:

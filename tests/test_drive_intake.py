@@ -427,7 +427,7 @@ def test_company_folder_nested_paths_and_duplicate_names(transports):
     paths = {item["file_id"]: item["path"] for item in packet["items"]}
     assert paths[pdf] == "deck.pdf"
     assert paths[office] == "financials/year/model.xlsx"
-    assert paths[duplicate] == "deck.pdf~" + duplicate
+    assert paths[duplicate] == "deck~" + duplicate + ".pdf"
     assert paths[unsafe] == "financials/..%2Fnotes%5Cname.txt"
     assert set(server.slots) == {pdf, office, duplicate, unsafe}
 
@@ -527,9 +527,24 @@ def test_native_exports_use_complete_representations(native, fmt, mime, transpor
     result = run(request(root))
     acquired = acquisitions(result)[doc]
     assert acquired["status"] == "uploaded" and acquired["export_format"] == fmt
+    assert result["packets"][0]["items"][0]["path"] == "native-source." + fmt
+    assert result["packets"][0]["items"][0]["name"] == "native-source"
+    assert result["packets"][0]["items"][0]["mime_type"] == "application/vnd.google-apps." + native
     assert server.slots[doc] == b"complete-export"
     assert all(call[2]["mimeType"] == mime for call in google.calls_for("export"))
     assert not google.calls_for("media")
+
+
+def test_native_export_and_binary_basename_collision_retains_supported_suffix(transports):
+    google, _ = transports
+    root = google.add(1, "company", intake.FOLDER)
+    doc = google.add(2, "Foo", "application/vnd.google-apps.document", parent=root)
+    binary = google.add(3, "Foo.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", parent=root)
+    result = run(request(root))
+    paths = {item["file_id"]: item["path"] for item in result["packets"][0]["items"]}
+    assert paths[doc] == "Foo.docx"
+    assert paths[binary] == "Foo~" + binary + ".docx"
+    assert all(path.endswith(".docx") for path in paths.values())
 
 
 def test_google_export_size_error_is_not_an_access_error(transports):
