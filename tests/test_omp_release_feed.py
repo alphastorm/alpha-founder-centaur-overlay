@@ -151,7 +151,7 @@ def responses():
     result[(gateway + "/issues/comments", 1)] = [comment()]
     result[(gateway + "/releases", 1)] = [release()]
     result[(gateway + "/actions/runs", 1)] = {"workflow_runs": [
-        run(feed.GATEWAY, "Upstream OMP canary", 501), run(feed.GATEWAY, "Signed release", 502),
+        run(feed.GATEWAY, "Upstream OMP canary", 501), run(feed.GATEWAY, "Keyless release", 502),
         run(feed.GATEWAY, "Upstream OMP canary", 503, conclusion="success"),
     ]}
     result[(monorepo + "/actions/runs", 1)] = {"workflow_runs": [

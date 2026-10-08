@@ -17,6 +17,7 @@ REPOSITORIES = (MONOREPO, GATEWAY)
 CONFIG_PATH = Path(__file__).with_name("omp_channels.json")
 INTERVAL_SECONDS = 300
 LOOKBACK_SECONDS = 6 * INTERVAL_SECONDS
+RUN_CREATED_LOOKBACK = dt.timedelta(days=2)
 MAX_EVENTS = 100
 MAX_TEXT = 1500
 MAX_DETAIL = 600
@@ -30,7 +31,7 @@ CHANNEL_ID = re.compile(r"[CG][A-Z0-9]{8,20}")
 FAILURES = {"failure", "timed_out", "startup_failure", "action_required"}
 CONCLUSIONS = FAILURES | {"success", "cancelled", "neutral", "skipped", "stale"}
 RUN_NAMES = {
-    GATEWAY: {"Upstream OMP canary", "Signed release"},
+    GATEWAY: {"Upstream OMP canary", "Keyless release"},
     MONOREPO: {"Release worker", "Provider-free contracts"},
 }
 
@@ -212,7 +213,11 @@ def collect_events(github: GitHub, config: dict[str, Any],
                     add(repo, "release-driver", comment.get("id"), driver[1], comment["created_at"],
                         comment["user"], number=number, detail=line[:MAX_DETAIL])
 
-            for release in github.items(base + "/releases"):
+            # Newest first: a release published inside the lookback is on the first page.
+            releases = github.get(base + "/releases", per_page=PAGE_SIZE)
+            if not isinstance(releases, list) or any(not isinstance(row, dict) for row in releases):
+                raise ValueError("unexpected GitHub list response")
+            for release in releases:
                 if not trusted_author(release.get("author"), config, (config["release_bot_login"],)):
                     continue
                 tag = release.get("tag_name")
@@ -221,10 +226,12 @@ def collect_events(github: GitHub, config: dict[str, Any],
                 add(repo, "release", release.get("id"), "published", release.get("published_at"),
                     release["author"], tag=tag)
 
-        # Completion is filtered by updated_at, not created_at: a long run may
-        # finish inside this poll. Candidate creation spans GitHub's 35-day run limit.
+        # Completion is filtered by updated_at, not created_at: a long run may finish
+        # inside this poll. Two days of creation covers every run these workflows make
+        # (the Studio release worker is the longest, hours) and keeps a busy repository
+        # well under MAX_PAGES; 35 days of the gateway's CI alone is over 1,200 runs.
         for run in github.items(base + "/actions/runs", key="workflow_runs", status="completed",
-                                created=">=" + iso(until - dt.timedelta(days=35))):
+                                created=">=" + iso(until - RUN_CREATED_LOOKBACK)):
             if not trusted_author(run.get("actor"), config,
                                   (ACTIONS_BOT, config["app_bot_login"], config["release_bot_login"],
                                    config["founder_login"])):
