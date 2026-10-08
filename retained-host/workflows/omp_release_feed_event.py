@@ -7,7 +7,7 @@ from typing import Any
 import uuid
 
 from api.workflow_engine import WorkflowContext
-from _omp_feed import event_key, generation, load_config, message
+from _omp_feed import event_key, load_config, message
 
 WORKFLOW_NAME = "omp_release_feed_event"
 WORKFLOW_PRINCIPAL = "omp-release-feed"
@@ -16,13 +16,10 @@ WORKFLOW_PRINCIPAL = "omp-release-feed"
 @dataclass
 class Input:
     event: dict[str, Any] = field(default_factory=dict)
-    generation: str = ""
 
 
 async def handler(inp: Input, ctx: WorkflowContext) -> dict[str, Any]:
     config = load_config()
-    if inp.generation != generation(config):
-        return {"state": "retired"}
     text = message(inp.event, config)
     if text is None:
         return {"state": "ignored"}

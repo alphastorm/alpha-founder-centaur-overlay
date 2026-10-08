@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,8 +16,7 @@ GATEWAY = "alphastorm/omp-session-gateway"
 REPOSITORIES = (MONOREPO, GATEWAY)
 CONFIG_PATH = Path(__file__).with_name("omp_channels.json")
 INTERVAL_SECONDS = 300
-LOOKBACK_SECONDS = 900
-OVERLAP_SECONDS = 60
+LOOKBACK_SECONDS = 6 * INTERVAL_SECONDS
 MAX_EVENTS = 100
 MAX_TEXT = 1500
 MAX_DETAIL = 600
@@ -72,11 +70,6 @@ def load_config() -> dict[str, Any]:
     }
 
 
-def generation(config: dict[str, Any]) -> str:
-    encoded = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()[:20]
-
-
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -120,7 +113,7 @@ class GitHub:
             oldest = timestamp(rows[-1].get("updated_at"))
             if updated_since is not None and oldest is not None and oldest < updated_since:
                 return
-        raise ValueError("GitHub pagination exceeds feed limit; cursor not advanced")
+        raise ValueError("GitHub pagination exceeds feed limit")
 
 
 def author(user: Any) -> tuple[str, str]:
@@ -161,7 +154,7 @@ def collect_events(github: GitHub, config: dict[str, Any],
                  "at": iso(at), "author": login, "author_type": user_type, **fields}
         events[event_key(event)] = event
         if len(events) > MAX_EVENTS:
-            raise ValueError("GitHub events exceed feed limit; cursor not advanced")
+            raise ValueError("GitHub events exceed feed limit")
 
     for repo in REPOSITORIES:
         if repo not in config["channels"]:

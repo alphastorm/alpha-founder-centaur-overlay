@@ -28,8 +28,8 @@ import omp_release_feed as poller
 import omp_release_feed_event as delivery
 
 NOW = dt.datetime(2026, 10, 7, 12, 5, tzinfo=dt.timezone.utc)
-SEED = NOW - dt.timedelta(seconds=300)
-OLD = SEED - dt.timedelta(days=1)
+RECENT = NOW - dt.timedelta(seconds=300)
+OLD = RECENT - dt.timedelta(days=1)
 
 
 def user(login, kind="User"):
@@ -39,7 +39,7 @@ def user(login, kind="User"):
 def issue(number=7, **changes):
     return {
         "id": 100 + number, "number": number, "title": "Upstream tracking: v18.8.3",
-        "user": user(feed.ACTIONS_BOT, "Bot"), "created_at": feed.iso(SEED + dt.timedelta(seconds=1)),
+        "user": user(feed.ACTIONS_BOT, "Bot"), "created_at": feed.iso(RECENT + dt.timedelta(seconds=1)),
         "updated_at": feed.iso(NOW), "state": "open", "body": "PRIVATE ISSUE BODY", **changes,
     }
 
@@ -49,7 +49,7 @@ def pr(repo, number=1, **changes):
         "id": 200 + number, "number": number, "title": "prepare & <@U012345678> > release",
         "user": user("alpha-founder-source-alphastorm[bot]", "Bot"),
         "head": {"repo": {"full_name": repo}, "ref": "alpha-founder/order"},
-        "created_at": feed.iso(SEED + dt.timedelta(seconds=5)), "updated_at": feed.iso(NOW),
+        "created_at": feed.iso(RECENT + dt.timedelta(seconds=5)), "updated_at": feed.iso(NOW),
         "state": "open", "merged_at": None, "body": "PRIVATE PR BODY", **changes,
     }
 
@@ -100,8 +100,8 @@ class FakeCtx:
         self.checkpoints = {}
         self.children = []
         self.starts = {}
+        self.new_child_keys = []
         self.posts = []
-        self.sleeps = []
 
     async def step(self, name, fn, **kwargs):
         if name not in self.checkpoints:
@@ -114,10 +114,9 @@ class FakeCtx:
         self.children.append((name, input, idempotency_key))
         created = idempotency_key not in self.starts
         self.starts.setdefault(idempotency_key, copy.deepcopy(input))
+        if created:
+            self.new_child_keys.append(idempotency_key)
         return {"created": created, "run_id": "fake-run", "task_id": "fake-task"}
-
-    async def sleep_until(self, name, when):
-        self.sleeps.append((name, when))
 
     async def post_to_slack(self, channel, text, **kwargs):
         self.posts.append((channel, text, kwargs))
@@ -166,7 +165,7 @@ def responses():
 
 def test_collects_all_pipeline_sources_with_conclusions_and_links(config):
     github = FakeGitHub(responses())
-    events = feed.collect_events(github, config, SEED, NOW)
+    events = feed.collect_events(github, config, RECENT, NOW)
     assert Counter(event["kind"] for event in events) == {
         "tracking": 4, "pr": 6, "release-driver": 1, "release": 1, "run": 5,
     }
@@ -183,7 +182,7 @@ def test_collects_all_pipeline_sources_with_conclusions_and_links(config):
 
 
 def test_driver_relays_exactly_escaped_first_line(config):
-    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, SEED, NOW)
+    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, RECENT, NOW)
                  if event["kind"] == "release-driver")
     assert event["detail"] == comment()["body"].split("\n")[0]
     assert feed.message(event, config) == "release-driver: preparing — &lt;@U012345678&gt; &amp; build &gt; ready"
@@ -195,7 +194,7 @@ def test_driver_state_is_not_coupled_to_a_driver_enum(config, state):
     base = "/repos/" + feed.GATEWAY
     github = FakeGitHub({(base + "/issues", 1): [issue()],
                          (base + "/issues/comments", 1): [comment(body=f"release-driver: {state} — ready")]})
-    event = next(event for event in feed.collect_events(github, config, SEED, NOW) if event["kind"] == "release-driver")
+    event = next(event for event in feed.collect_events(github, config, RECENT, NOW) if event["kind"] == "release-driver")
     assert event["state"] == state
     assert feed.message(event, config) == f"release-driver: {state} — ready"
 
@@ -210,7 +209,7 @@ def test_untrusted_text_is_never_converted_before_author_filter(config):
         (base + "/pulls", 1): [pr(feed.GATEWAY, user=user("outside"), title=Unreadable())],
         (base + "/issues/comments", 1): [comment(user=user("outside"), body=Unreadable())],
     })
-    assert feed.collect_events(github, config, SEED, NOW) == []
+    assert feed.collect_events(github, config, RECENT, NOW) == []
     event = {"repo": feed.GATEWAY, "kind": "pr", "id": 1, "number": 1, "state": "opened",
              "author": "outside", "author_type": "User", "detail": Unreadable()}
     assert feed.message(event, config) is None
@@ -229,7 +228,7 @@ def test_filters_authors_before_using_external_text(config, source):
     for field in ("body", "title", "name"):
         if field in row:
             row[field] = "UNTRUSTED <@U012345678> text"
-    events = feed.collect_events(FakeGitHub(dataset), config, SEED, NOW)
+    events = feed.collect_events(FakeGitHub(dataset), config, RECENT, NOW)
     kind = {"issue": "tracking", "comment": "release-driver"}.get(source, source)
     assert not any(event["repo"] == feed.GATEWAY and event["kind"] == kind for event in events)
 
@@ -242,7 +241,7 @@ def test_app_and_actions_identities_must_be_bots(config, target):
     rows = dataset[(base + endpoint, 1)]
     rows[:] = [rows[0]]
     rows[0]["user"]["type"] = "User"
-    events = feed.collect_events(FakeGitHub(dataset), config, SEED, NOW)
+    events = feed.collect_events(FakeGitHub(dataset), config, RECENT, NOW)
     assert not any(event["repo"] == feed.GATEWAY and event["kind"] == ("tracking" if target == "issue" else "pr")
                    for event in events)
 
@@ -251,13 +250,13 @@ def test_app_and_actions_identities_must_be_bots(config, target):
 def test_tracking_title_is_exact(config, title):
     base = "/repos/" + feed.GATEWAY
     dataset = {(base + "/issues", 1): [issue(title=title)]}
-    assert feed.collect_events(FakeGitHub(dataset), config, SEED, NOW) == []
+    assert feed.collect_events(FakeGitHub(dataset), config, RECENT, NOW) == []
 
 
 @pytest.mark.parametrize("issue_url", ["https://outside.invalid/issues/7", "https://api.github.com/repos/other/repo/issues/7"])
 def test_comment_cannot_redirect_issue_lookup(config, issue_url):
     github = FakeGitHub({("/repos/" + feed.GATEWAY + "/issues/comments", 1): [comment(issue_url=issue_url)]})
-    assert feed.collect_events(github, config, SEED, NOW) == []
+    assert feed.collect_events(github, config, RECENT, NOW) == []
     assert all(any(path.startswith("/repos/" + repo + "/") for repo in feed.REPOSITORIES)
                for path, _ in github.calls)
     assert not any(re.search(r"/issues/[0-9]+$", path) for path, _ in github.calls)
@@ -266,7 +265,7 @@ def test_comment_cannot_redirect_issue_lookup(config, issue_url):
 def test_comment_on_nontracking_issue_is_ignored(config):
     base = "/repos/" + feed.GATEWAY
     github = FakeGitHub({(base + "/issues/comments", 1): [comment()], base + "/issues/7": issue(title="General discussion")})
-    assert feed.collect_events(github, config, SEED, NOW) == []
+    assert feed.collect_events(github, config, RECENT, NOW) == []
     assert (base + "/issues/7", {}) in github.calls
 
 
@@ -277,78 +276,97 @@ def test_skips_pr_disguised_as_issue_fork_pr_and_draft_release(config):
         (base + "/pulls", 1): [pr(feed.GATEWAY, head={"repo": {"full_name": "outside/repo"}}), pr(feed.GATEWAY, head={"repo": None})],
         (base + "/releases", 1): [release(draft=True)],
     })
-    assert feed.collect_events(github, config, SEED, NOW) == []
+    assert feed.collect_events(github, config, RECENT, NOW) == []
 
 
 def test_keys_are_stable_across_payload_changes_and_separate_state_repo_kind(config):
-    event = feed.collect_events(FakeGitHub(responses()), config, SEED, NOW)[0]
+    event = feed.collect_events(FakeGitHub(responses()), config, RECENT, NOW)[0]
     key = feed.event_key(event)
     assert key == feed.event_key(copy.deepcopy(event) | {"detail": "renamed", "at": feed.iso(NOW)})
     for changes in ({"state": "closed"}, {"repo": "other/repo"}, {"kind": "other"}, {"id": event["id"] + 1}):
         assert key != feed.event_key(event | changes)
-    reversed_config = dict(reversed(list(config.items())))
-    reversed_config["channels"] = dict(reversed(list(config["channels"].items())))
-    assert feed.generation(config) == feed.generation(reversed_config)
 
 
-def test_seed_from_now_posts_nothing_and_scheduled_ticks_deduplicate(config, monkeypatch):
-    monkeypatch.setattr(poller, "utcnow", lambda: SEED)
-    monkeypatch.setattr(poller, "GitHub", lambda: pytest.fail("bootstrap must not read GitHub"))
-    first = FakeCtx()
-    assert asyncio.run(poller.handler(poller.Input(), first)) == {"state": "seeded", "events": 0}
-    assert first.posts == [] and first.sleeps == []
-    name, initial, key = first.children[0]
-    assert name == poller.WORKFLOW_NAME and initial["seeded_at"] == initial["since"] == feed.iso(SEED)
-    monkeypatch.setattr(poller, "utcnow", lambda: NOW)
-    second = FakeCtx()
-    second.starts = first.starts
-    assert asyncio.run(poller.handler(poller.Input(), second))["state"] == "scheduled"
-    assert second.children[0][2] == key
-    assert second.starts[key]["seeded_at"] == feed.iso(SEED)
-
-
-def test_first_poll_uses_seed_then_hands_off_and_starts_one_child_per_event(config, monkeypatch):
-    dataset = responses()
-    dataset[("/repos/" + feed.GATEWAY + "/issues", 1)].append(issue(9, created_at=feed.iso(SEED - dt.timedelta(seconds=1))))
-    github = FakeGitHub(dataset)
+def test_scheduled_poll_starts_one_child_per_event_then_returns(config, monkeypatch):
+    github = FakeGitHub(responses())
     monkeypatch.setattr(poller, "GitHub", lambda: github)
     monkeypatch.setattr(poller, "utcnow", lambda: NOW)
-    inp = poller.Input(seeded_at=feed.iso(SEED), since=feed.iso(SEED), generation=feed.generation(config))
+    inp = poller.Input()
     ctx = FakeCtx()
     result = asyncio.run(poller.handler(inp, ctx))
-    assert result == {"state": "polled", "since": feed.iso(SEED), "until": feed.iso(NOW), "events": 17}
-    assert ctx.sleeps == [("poll-after", NOW)]
-    event_children = [child for child in ctx.children if child[0] == delivery.WORKFLOW_NAME]
-    assert len(event_children) == len({child[2] for child in event_children}) == 17
-    assert all(child[2] == feed.event_key(child[1]["event"]) for child in event_children)
-    continuation = ctx.children[-1]
-    assert continuation[0] == poller.WORKFLOW_NAME
-    assert continuation[1] == {"seeded_at": feed.iso(SEED), "since": feed.iso(NOW), "generation": inp.generation}
+    assert result == {"state": "polled", "since": feed.iso(NOW - dt.timedelta(seconds=feed.LOOKBACK_SECONDS)),
+                      "until": feed.iso(NOW), "events": 17}
+    assert poller.SCHEDULE["interval_seconds"] == 300 and feed.LOOKBACK_SECONDS == 1800
+    assert len(ctx.children) == len(ctx.new_child_keys) == 17
+    assert all(child[0] == delivery.WORKFLOW_NAME and set(child[1]) == {"event"} for child in ctx.children)
+    assert all(child[2] == feed.event_key(child[1]["event"]) for child in ctx.children)
     assert ctx.posts == []
     before = len(github.calls), len(ctx.children)
     asyncio.run(poller.handler(inp, ctx))
     assert before == (len(github.calls), len(ctx.children))
 
 
-def test_downtime_catchup_is_bounded_and_future_events_not_posted(config, monkeypatch):
+def test_overlapping_ticks_start_no_duplicate_child_keys(config, monkeypatch):
+    github = FakeGitHub(responses())
+    monkeypatch.setattr(poller, "GitHub", lambda: github)
+    monkeypatch.setattr(poller, "utcnow", lambda: NOW)
+    first = FakeCtx()
+    assert asyncio.run(poller.handler(poller.Input(), first))["events"] == 17
+    previous_reads = len(github.calls)
+    monkeypatch.setattr(poller, "utcnow", lambda: NOW + dt.timedelta(seconds=feed.INTERVAL_SECONDS))
+    second = FakeCtx()
+    second.starts = first.starts
+    assert asyncio.run(poller.handler(poller.Input(), second))["events"] == 17
+    assert len(github.calls) > previous_reads
+    assert {child[2] for child in first.children} == {child[2] for child in second.children}
+    assert len(first.new_child_keys) == 17 and second.new_child_keys == []
+    assert len(second.starts) == 17
+
+
+def test_one_failed_tick_does_not_stop_the_next_tick(config, monkeypatch):
+    class OneFailedRead(FakeGitHub):
+        failed = False
+
+        def get(self, path, **query):
+            if not self.failed:
+                self.failed = True
+                raise RuntimeError("transient GitHub read failure")
+            return super().get(path, **query)
+
+    github = OneFailedRead(responses())
+    monkeypatch.setattr(poller, "GitHub", lambda: github)
+    monkeypatch.setattr(poller, "utcnow", lambda: NOW)
+    failed = FakeCtx()
+    with pytest.raises(RuntimeError, match="transient GitHub read failure"):
+        asyncio.run(poller.handler(poller.Input(), failed))
+    assert not failed.children and not failed.posts
+    monkeypatch.setattr(poller, "utcnow", lambda: NOW + dt.timedelta(seconds=feed.INTERVAL_SECONDS))
+    succeeding = FakeCtx()
+    assert asyncio.run(poller.handler(poller.Input(), succeeding))["events"] == 17
+    assert len(succeeding.new_child_keys) == 17
+    assert all(child[0] == delivery.WORKFLOW_NAME for child in succeeding.children)
+
+
+def test_events_outside_lookback_or_in_the_future_are_never_posted(config, monkeypatch):
     github = FakeGitHub({("/repos/" + feed.GATEWAY + "/issues", 1): [
         issue(created_at=feed.iso(NOW - dt.timedelta(seconds=feed.LOOKBACK_SECONDS + 1))),
         issue(8, created_at=feed.iso(NOW + dt.timedelta(seconds=1))),
+        issue(9, created_at=feed.iso(NOW - dt.timedelta(seconds=feed.LOOKBACK_SECONDS))),
+        issue(10, created_at=feed.iso(NOW - dt.timedelta(seconds=1))),
     ]})
     monkeypatch.setattr(poller, "GitHub", lambda: github)
     monkeypatch.setattr(poller, "utcnow", lambda: NOW)
-    result = asyncio.run(poller.handler(poller.Input(
-        seeded_at=feed.iso(OLD), since=feed.iso(NOW - dt.timedelta(hours=1)), generation=feed.generation(config),
-    ), FakeCtx()))
-    assert result["events"] == 0
-    assert result["since"] == feed.iso(NOW - dt.timedelta(seconds=feed.LOOKBACK_SECONDS))
-
-
-def test_config_changes_retire_old_poll_chain_without_reads(config, monkeypatch):
-    monkeypatch.setattr(poller, "GitHub", lambda: pytest.fail("retired chain must not read GitHub"))
     ctx = FakeCtx()
-    assert asyncio.run(poller.handler(poller.Input(since=feed.iso(SEED), generation="old"), ctx)) == {"state": "retired", "events": 0}
-    assert not ctx.children and not ctx.posts and not ctx.sleeps
+    result = asyncio.run(poller.handler(poller.Input(), ctx))
+    assert result["events"] == 2
+    assert result["since"] == feed.iso(NOW - dt.timedelta(seconds=feed.LOOKBACK_SECONDS))
+    assert {child[1]["event"]["number"] for child in ctx.children} == {9, 10}
+    posted = []
+    for _, payload, _ in ctx.children:
+        child_ctx = FakeCtx()
+        asyncio.run(delivery.handler(delivery.Input(**payload), child_ctx))
+        posted.extend(child_ctx.posts)
+    assert len(posted) == 2
 
 
 @pytest.mark.parametrize("channel", ["", "<OMP_MONOREPO_CHANNEL_ID>", "CPLACEHOLDER", "#omp-monorepo", "C0EXAMPLE123"])
@@ -363,7 +381,7 @@ def test_placeholder_config_is_silent(tmp_path, monkeypatch, channel):
     assert config["channels"] == {}
     ctx = FakeCtx()
     assert asyncio.run(poller.handler(poller.Input(), ctx)) == {"state": "unconfigured", "events": 0}
-    inp = delivery.Input(event={"repo": feed.MONOREPO, "id": 1}, generation=feed.generation(config))
+    inp = delivery.Input(event={"repo": feed.MONOREPO, "id": 1})
     assert asyncio.run(delivery.handler(inp, ctx)) == {"state": "ignored"}
     assert not ctx.posts and not ctx.children
 
@@ -371,14 +389,14 @@ def test_placeholder_config_is_silent(tmp_path, monkeypatch, channel):
 def test_partial_configuration_only_reads_mapped_repo(config):
     config["channels"].pop(feed.MONOREPO)
     github = FakeGitHub(responses())
-    events = feed.collect_events(github, config, SEED, NOW)
+    events = feed.collect_events(github, config, RECENT, NOW)
     assert events and all(event["repo"] == feed.GATEWAY for event in events)
     assert all(path.startswith("/repos/" + feed.GATEWAY) for path, _ in github.calls)
 
 
 def test_event_post_is_checkpointed_with_stable_slack_client_id(config):
-    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, SEED, NOW) if event["kind"] == "pr")
-    inp = delivery.Input(event=event, generation=feed.generation(config))
+    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, RECENT, NOW) if event["kind"] == "pr")
+    inp = delivery.Input(event=event)
     ctx = FakeCtx()
     assert asyncio.run(delivery.handler(inp, ctx))["state"] == "posted"
     asyncio.run(delivery.handler(inp, ctx))
@@ -391,10 +409,11 @@ def test_event_post_is_checkpointed_with_stable_slack_client_id(config):
 
 
 def test_delivery_rechecks_author_and_configuration(config):
-    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, SEED, NOW) if event["kind"] == "pr")
+    event = next(event for event in feed.collect_events(FakeGitHub(responses()), config, RECENT, NOW) if event["kind"] == "pr")
     ctx = FakeCtx()
-    assert asyncio.run(delivery.handler(delivery.Input(event=event | {"author": "outside"}, generation=feed.generation(config)), ctx)) == {"state": "ignored"}
-    assert asyncio.run(delivery.handler(delivery.Input(event=event, generation="old"), ctx)) == {"state": "retired"}
+    assert asyncio.run(delivery.handler(delivery.Input(event=event | {"author": "outside"}), ctx)) == {"state": "ignored"}
+    config["channels"].pop(event["repo"])
+    assert asyncio.run(delivery.handler(delivery.Input(event=event), ctx)) == {"state": "ignored"}
     assert not ctx.posts
 
 
@@ -429,12 +448,12 @@ def test_stdlib_get_uses_injected_token_and_never_follows_redirects(monkeypatch)
 
     monkeypatch.setenv("GITHUB_TOKEN", "GITHUB_TOKEN")
     monkeypatch.setattr(feed, "build_opener", lambda handler: Opener())
-    assert feed.GitHub().get("/repos/" + feed.GATEWAY + "/issues", since=feed.iso(SEED)) == [{"id": 1}]
+    assert feed.GitHub().get("/repos/" + feed.GATEWAY + "/issues", since=feed.iso(RECENT)) == [{"id": 1}]
     request, timeout = calls[0]
     assert request.get_method() == "GET" and timeout == 30
     assert request.get_header("Authorization") == "Bearer GITHUB_TOKEN"
     assert urlsplit(request.full_url).netloc == "api.github.com"
-    assert parse_qs(urlsplit(request.full_url).query)["since"] == [feed.iso(SEED)]
+    assert parse_qs(urlsplit(request.full_url).query)["since"] == [feed.iso(RECENT)]
     assert feed.NoRedirect().redirect_request(None, None, 302, "", {}, "https://outside.invalid") is None
 
 
@@ -449,14 +468,14 @@ def test_pagination_exhausts_pages_and_fails_closed_at_bound(monkeypatch):
         list(github.items(path))
 
 
-def test_event_cap_fails_before_deliveries_or_cursor_advance(config, monkeypatch):
+def test_event_cap_fails_before_deliveries(config, monkeypatch):
     monkeypatch.setattr(feed, "MAX_EVENTS", 1)
     monkeypatch.setattr(poller, "GitHub", lambda: FakeGitHub(responses()))
     monkeypatch.setattr(poller, "utcnow", lambda: NOW)
     ctx = FakeCtx()
     with pytest.raises(ValueError, match="events exceed"):
-        asyncio.run(poller.handler(poller.Input(seeded_at=feed.iso(SEED), since=feed.iso(SEED), generation=feed.generation(config)), ctx))
-    assert not ctx.children and not ctx.posts and "continue" not in ctx.checkpoints
+        asyncio.run(poller.handler(poller.Input(), ctx))
+    assert not ctx.children and not ctx.posts
 
 
 @pytest.mark.parametrize("persona", ["omp_monorepo", "omp_session_gateway"])

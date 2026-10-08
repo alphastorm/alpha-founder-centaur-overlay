@@ -22,7 +22,6 @@ Read `git show origin/main:<path>` without executing repository code, scripts or
 5. Every driver state transition has exactly one bot-authored issue comment. Its first line is `release-driver: <state> — <one-line detail>`; later lines contain evidence links. The retained-host feed relays only the escaped first line, only from the configured release bot.
 6. `signed-release.yml` is the signed publishing workflow. `docs/RELEASE_STATUS.md`, the record PR and the published release are the durable outcome evidence; the driver closes the tracking issue only after recording. Read failure evidence for `Upstream OMP canary` and `Signed release` rather than claiming readiness from a prepare/approve PR alone.
 
-The first requested qualification is gateway v0.7.5 against stock OMP 18.8.3; the starting lock baseline is v18.5.1. These are planning facts, not proof a bump or release happened. Read the current lock and release record before reporting their present values.
 
 ## Report status
 
