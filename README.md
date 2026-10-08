@@ -1,6 +1,6 @@
 # Alpha Founder Centaur Overlay
 
-This public repository contains the non-secret organization overlay for Alpha Founder: the original Gate B qualification assets and a deterministic investor-source intake workflow.
+This public repository contains the non-secret organization overlay for Alpha Founder: Gate B qualification assets, deterministic investor-source intake, and read-only OMP repository companions with a retained-host status feed.
 
 It contains:
 
@@ -8,6 +8,7 @@ It contains:
 - a local qualification workflow and a bounded Drive intake workflow;
 - one Claude Code skill;
 - one sandbox prompt extension, one prompt fragment, one persona, and one inert sandbox marker file;
+- two discoverable OMP repository personas and a retained-host-only GitHub-to-Slack feed;
 - deterministic local tests.
 
 The overlay contains no Alpha Founder product data, provider credentials, GitHub credentials or secrets. Qualification and deployment pin an immutable commit SHA; `main` is never a runtime selector. The qualification assets remain local and non-mutating. Drive intake reads a selected Google source and uploads acquired bytes only to the supplied Alpha Founder source-slot capability.
@@ -49,5 +50,80 @@ Tests import the native helpers from `~/.cache/centaur-144-src` (override `CENTA
 ```sh
 uv run --no-project --with pytest --with jsonschema --with google-api-python-client --with httplib2 --with pysocks pytest -q
 ```
+
+## Retained-host OMP channels (Centaur `ae9dfdb8`)
+
+`tools/personas/omp_monorepo/` and `tools/personas/omp_session_gateway/` each contain `PROMPT.md` and a `pyproject.toml` with `[tool.centaur] type = "persona"`. At `ae9dfdb8`, `tool_discovery.rs` scans children and grandchildren of each tools source, uses the directory basename as the persona ID, and reads `prompt_file`. These IDs satisfy SlackbotV2's `[A-Za-z0-9][A-Za-z0-9._-]*` pattern. `PersonaRegistry` makes the selected prompt available as `/home/agent/AGENTS_PERSONA.md`; the public tools-source visibility makes both personas discoverable even with public repo-cache access. This matches the `centaur-founder-kit` packaging precedent, not the older standalone `personas/qualification-reviewer.md` file.
+
+### Separate retained-host mount
+
+The name `retained-host/workflows/` is a deployment boundary, not a Centaur convention: only the retained host mounts it. Keep Studio intake in the existing `workflows/` tree. **Do not mount that existing overlay tree at this new ref on the retained host**: with `WORKFLOW_ENABLE_MODE=all`, `drive_intake.py` declares the Studio-only `alpha-founder-drive-intake` principal, and an unknown principal fails workflow startup.
+
+Create the feed principal before loading the new workflows. Set these exact api-rs environment values, preserving Centaur's native workflow tree:
+
+```text
+WORKFLOW_HOST_SANDBOX=true
+WORKFLOW_ENABLE_MODE=all
+WORKFLOW_DIRS=/var/lib/centaur/repos/paradigmxyz/centaur/workflows:/var/lib/centaur/repos/alphastorm/alpha-founder-centaur-overlay/retained-host/workflows
+KUBERNETES_WORKFLOW_DIRS=/home/agent/github/paradigmxyz/centaur/workflows:/home/agent/github/alphastorm/alpha-founder-centaur-overlay/retained-host/workflows
+```
+
+Pin the overlay to the integrated immutable commit (`OVERLAY_REF` below); never use a branch at runtime. Replace the existing tools extra source, rather than adding a second copy of the same personas:
+
+```text
+KUBERNETES_TOOLS_EXTRA_SOURCES=[{"ref":"<OVERLAY_REF>","repo":"alphastorm/alpha-founder-centaur-overlay","subdir":"tools","visibility":"public"}]
+```
+
+The retained-host repo cache and sandbox mount must contain **that same ref**, including `retained-host/workflows/`; an old tools pin or mixed cache checkout is not a deployment of this feed. This change does not deploy or alter the Studio intake mount.
+
+### Channel configuration
+
+Edit the one non-secret mapping in `retained-host/workflows/omp_channels.json` before pinning the configured commit. Set `channels["alphastorm/omp-monorepo"]` and `channels["alphastorm/omp-session-gateway"]` to actual `C…`/`G…` conversation IDs. The supplied `<…>` placeholders, blank/name values, and explicit placeholder/example markers are inactive: unmapped repositories are neither read nor posted, and an entirely inactive mapping performs no GitHub requests or child starts. The feed's App and release-bot logins are configurable there; `founder_login` allows the founder's workflow-dispatch/schedule runs to be recognized, not to authorize any action. Defaults are `alpha-founder-source-alphastorm[bot]`, `alphastorm-release`, and `alphastorm`.
+
+Set chart value `slackbotv2.channelDefaults` to this JSON object shape after replacing both key placeholders with the same real IDs (the chart renders `SLACKBOTV2_CHANNEL_DEFAULTS`):
+
+```json
+{
+  "<OMP_MONOREPO_CHANNEL_ID>": {"persona": "omp_monorepo"},
+  "<OMP_SESSION_GATEWAY_CHANNEL_ID>": {"persona": "omp_session_gateway"}
+}
+```
+
+Channel defaults apply when a session is created, not retroactively to existing threads. Do not add buttons, release dispatches or approval endpoints to Slack. Have the stock bot join both channels through the normal operator setup; `chat:write` without `chat:write.public` does not establish membership in an arbitrary channel.
+
+### Principals and read-only grants
+
+Use Console admin forms; none of these steps need a release-bot write token in Centaur:
+
+1. Identify/precreate the two conversation principals at **`/console/principals/new`**. Normal SlackbotV2 thread keys `slack:CHANNEL:THREAD` derive foreign IDs `slack-channel-<lowercase-channel-id>`. If the actual thread key includes a team (`slack:TEAM:CHANNEL:THREAD`), the verified alternate is `slack-channel-<lowercase-team-id>-<lowercase-channel-id>`. Match the actual identity; do not create a persona-named principal. Display names can be `#omp-monorepo` and `#omp-session-gateway`.
+2. Create a third principal with foreign ID **`omp-release-feed`** before changing the mounts. Both `omp_release_feed` and `omp_release_feed_event` declare `WORKFLOW_PRINCIPAL = "omp-release-feed"`. A named principal avoids bootstrapping/grant-order races and lets both workflows use one explicit identity. A string resolves an existing foreign ID/OID at `ae9dfdb8`; `True` would auto-register separate `workflow-<slugged-workflow-name>` identities instead.
+3. Create three least-privilege fine-grained GitHub PATs: monorepo-only for its channel, gateway-only for its channel, and both repositories for the feed. Grant **read-only** Metadata, Contents, Issues, Pull requests and Actions; no writes, workflow dispatch, administration or release-signing authority. A public channel must not receive the private monorepo token. These PATs need not belong to the release machine account.
+4. At **`/console/secrets/static/new`**, create one static secret per PAT, with kind **`github_token`**, Replace mode, proxy value **`GITHUB_TOKEN`**, match headers **`Authorization`**, and no body/path/query matching or required-match flag. Store the actual PAT using the **Control plane** secret source (`source_type=control_plane`), not in this public repository. The profile supplies canonical `require: false` and rules for `api.github.com`, `github.com` and `api.githubcopilot.com`, with empty method/path filters. Read-only enforcement therefore comes from the PAT's repository permissions, not from the persona or HTTP-rule filters.
+5. Open each **`/console/principals/<principal-oid>`** and grant only its corresponding static secret (`POST /console/principals/<oid>/grants`, form `grantable=static:<secret-oid>`). Inspect inherited roles/grants and requester-principal credentials too: remove conflicting or write-capable GitHub grants. Disable channel sandbox workflow-write capability; Slack must not start a release/order as a workaround. Do not grant these secrets to the default/all-channel role. Keep release-bot and App write credentials outside all Slack/conversation/requester and feed principals.
+
+`args.rs` injects `GITHUB_TOKEN` as a placeholder into both session and workflow-host sandbox environments; the `github_token` profile replaces the Authorization placeholder for the principal's granted secret, preserving Bearer or Git HTTPS Basic authentication. The personas use `GH_TOKEN="$GITHUB_TOKEN"` for `gh`; the verified sandbox Dockerfile installs both `git` and `gh`. Do not confuse the tools/repo-cache fetch credential (`KUBERNETES_TOOLS_GITHUB_TOKEN_SECRET`) with a channel/feed grant, and do not mount a release token into those sandboxes.
+
+The feed reads GitHub with stdlib `urllib` GETs through the injected proxy token. It calls `ctx.post_to_slack` rather than a Slack tool: at `ae9dfdb8`, api-rs performs `chat.postMessage` with its existing `SLACK_BOT_TOKEN`. **No sandbox Slack-token grant or Slack write credential is needed for any of these three principals.** The native RPC uses the server token, so the Python feed's fixed mapping and author filters, not a per-principal Slack grant, constrain its destination/content.
+
+### Feed behavior and recovery bounds
+
+- The five-minute `SCHEDULE` starts one stable-key seed run. The seed is checkpointed from now and posts nothing. Each poll run durably sleeps once, collects once, starts one `omp_release_feed_event` child per event, and checkpoints the next poll's handoff. This uses native `ctx.step`, `sleep_until`, and `start_workflow(..., idempotency_key=...)`, without a database table or an ever-growing replay loop.
+- Polls overlap by one minute but never predate the initial seed; catch-up is capped at 15 minutes. Channel/bot config changes retire the old generation and seed the new one from now, intentionally without historical backfill. A terminally failed chain needs operator recovery in Centaur's workflow console; a scheduled bootstrap cannot override a previously used seed key. The feed is a status summary, not a lossless event ledger.
+- Event keys contain repository, kind, GitHub ID and state; changed titles do not resend an event. The event child checkpoints the post and supplies a deterministic UUID `client_msg_id`. Key propagation and checkpoint replay are exercised locally with fakes and a native API import proof, not a live Absurd database. Exactly-once delivery across a Slack-accepted/post-checkpoint crash still depends on Slack's client-ID behavior and is not claimed as live-proven.
+- Sources are exact-title tracking issues authored by `github-actions[bot]`; opened/merged/closed PRs **authored** by the App Bot or release account in the same head repository; release-bot driver comments on those tracking issues; release-bot gateway releases; failed gateway `Upstream OMP canary`/`Signed release` runs; all completed monorepo `Release worker` runs; and failed monorepo `Provider-free contracts` runs on `main`. Run actors must be the configured founder/App/release account or `github-actions[bot]`. Failure includes `failure`, `timed_out`, `startup_failure` and `action_required`; cancelled runs are reported only for `Release worker`.
+- Everything fetched from GitHub is untrusted. Author filters run before external text is used. Only the driver's first line is relayed, with no later body links; issue/PR/release bodies and third-party comments never become events. Other messages use escaped, capped summaries and locally constructed GitHub links. `&`, `<` and `>` are escaped; messages are capped at 1,500 characters and unfurls are off. Requests refuse redirects, have a 30-second timeout and a 2 MiB response bound. At most 100 events and ten 100-row pages per endpoint are accepted; exceeding a bound fails before delivery/handoff, rather than advancing a cursor past unseen events.
+- Actions candidates cover the preceding 35 days by creation time, while completion eligibility uses the poll's `updated_at` interval. This avoids missing normal long-running jobs created before a poll; the GitHub 35-day workflow-duration ceiling and current REST ordering/timestamp semantics are deployment assumptions, not facts established by the Centaur commit.
+
+### Local proof and remaining deployment prerequisites
+
+`tests/test_omp_release_feed.py` exercises fake ctx checkpoints/starts/posts and fake GitHub REST responses, stable keys, all sources, author/type filtering, escaping/caps, placeholder silence, first-run seeding, bounded catch-up and persona packaging. Run the existing complete overlay suite once after changes:
+
+```sh
+uv run --no-project --with pytest --with jsonschema --with google-api-python-client --with httplib2 --with pysocks pytest -q
+```
+
+The legacy intake tests still use `CENTAUR_144_SOURCE`; feed tests can select an extracted native API via `CENTAUR_WORKFLOW_SOURCE=<temp>/services/workflow-python`. For the separate real-API import proof, extract `git archive ae9dfdb8 services/workflow-python` from the Centaur checkout into a temporary directory, put its `services/workflow-python` and this overlay's `retained-host/workflows` on `sys.path`, then use native `workflow_host.discover_workflows()` against only the retained-host tree. No live workflow/campaign, GitHub write, or Slack/Centaur call is part of these checks.
+
+Actual channel IDs, membership, principal/grant provisioning, read-only PAT access, the retained-host image/proxy egress, cache pinning, and Slack delivery remain operator prerequisites. The workflow display names and permitted actors come from the pipeline contract, not Centaur's source. GitHub listing captures current issue/PR state, not every transient close/reopen between polls. Native source confirms discovery, placeholders, child idempotency propagation and Slack posting APIs; it does not prove this retained host has been deployed or that Slack provides crash-window deduplication.
 
 No license is granted for this repository's contents.

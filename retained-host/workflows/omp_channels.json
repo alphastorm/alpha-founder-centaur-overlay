@@ -1,0 +1,9 @@
+{
+  "channels": {
+    "alphastorm/omp-monorepo": "<OMP_MONOREPO_CHANNEL_ID>",
+    "alphastorm/omp-session-gateway": "<OMP_SESSION_GATEWAY_CHANNEL_ID>"
+  },
+  "app_bot_login": "alpha-founder-source-alphastorm[bot]",
+  "release_bot_login": "alphastorm-release",
+  "founder_login": "alphastorm"
+}

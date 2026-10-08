@@ -1,0 +1,9 @@
+[project]
+name = "alpha-founder-persona-omp-session-gateway"
+version = "0.1.0"
+description = "Read-only OMP gateway release companion"
+requires-python = ">=3.11"
+
+[tool.centaur]
+type = "persona"
+prompt_file = "PROMPT.md"
