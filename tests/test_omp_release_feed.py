@@ -468,6 +468,50 @@ def test_pagination_exhausts_pages_and_fails_closed_at_bound(monkeypatch):
         list(github.items(path))
 
 
+def test_a_page_of_large_pull_requests_stays_within_the_response_bound(config, monkeypatch):
+    """A pull request carries its head and base repositories in full. After the move into
+    carrythroughsystems one 100-row page of the gateway's pulls was 2,147,817 bytes, over the
+    response bound, and every tick failed before reading anything else."""
+    padding = "x" * 25_000
+    pulls = [pr(feed.GATEWAY, padding=padding)] + [
+        pr(feed.GATEWAY, number, created_at=feed.iso(OLD), updated_at=feed.iso(OLD), padding=padding)
+        for number in range(2, 121)
+    ]
+
+    class Response:
+        def __init__(self, body):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def read(self, maximum):
+            return self.body[:maximum]
+
+    class Opener:
+        def open(self, request, *, timeout):
+            url = urlsplit(request.full_url)
+            query = parse_qs(url.query)
+            if url.path == "/repos/" + feed.GATEWAY + "/pulls":
+                size, page = int(query["per_page"][0]), int(query["page"][0])
+                rows = pulls[(page - 1) * size:page * size]
+            elif url.path.endswith("/actions/runs"):
+                rows = {"workflow_runs": []}
+            else:
+                rows = []
+            return Response(json.dumps(rows).encode())
+
+    monkeypatch.setenv("GITHUB_TOKEN", "GITHUB_TOKEN")
+    monkeypatch.setattr(feed, "build_opener", lambda handler: Opener())
+    events = feed.collect_events(feed.GitHub(), config, RECENT, NOW)
+    assert [(event["repo"], event["kind"], event["state"]) for event in events] == [
+        (feed.GATEWAY, "pr", "opened")
+    ]
+
+
 def test_event_cap_fails_before_deliveries(config, monkeypatch):
     monkeypatch.setattr(feed, "MAX_EVENTS", 1)
     monkeypatch.setattr(poller, "GitHub", lambda: FakeGitHub(responses()))

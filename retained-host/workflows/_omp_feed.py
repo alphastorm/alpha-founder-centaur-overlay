@@ -22,6 +22,10 @@ MAX_EVENTS = 100
 MAX_TEXT = 1500
 MAX_DETAIL = 600
 PAGE_SIZE = 100
+# A pull request carries its head and base repositories in full (about 21 KB on the gateway),
+# so 100 of them exceed MAX_RESPONSE_BYTES. The listing is newest-updated first and stops at
+# the lookback, so its first rows are all a tick reads.
+PR_PAGE_SIZE = 30
 MAX_PAGES = 10
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 ACTIONS_BOT = "github-actions[bot]"
@@ -100,15 +104,16 @@ class GitHub:
             raise ValueError("GitHub response exceeds feed limit")
         return json.loads(body)
 
-    def items(self, path: str, *, key: str | None = None,
+    def items(self, path: str, *, key: str | None = None, page_size: int | None = None,
               updated_since: dt.datetime | None = None, **query: Any):
+        size = page_size or PAGE_SIZE
         for page in range(1, MAX_PAGES + 1):
-            payload = self.get(path, per_page=PAGE_SIZE, page=page, **query)
+            payload = self.get(path, per_page=size, page=page, **query)
             rows = payload[key] if key else payload
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                 raise ValueError("unexpected GitHub list response")
             yield from rows
-            if len(rows) < PAGE_SIZE:
+            if len(rows) < size:
                 return
             # Only the PR endpoint is requested in descending updated order.
             oldest = timestamp(rows[-1].get("updated_at"))
@@ -175,7 +180,7 @@ def collect_events(github: GitHub, config: dict[str, Any],
                     issue["user"], number=number, detail=issue["title"])
 
         for pr in github.items(base + "/pulls", state="all", sort="updated", direction="desc",
-                               updated_since=since):
+                               page_size=PR_PAGE_SIZE, updated_since=since):
             if not trusted_author(pr.get("user"), config,
                                   (config["app_bot_login"], config["release_bot_login"])):
                 continue
