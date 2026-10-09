@@ -11,8 +11,8 @@ from typing import Any
 from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-MONOREPO = "alphastorm/omp-monorepo"
-GATEWAY = "alphastorm/omp-session-gateway"
+MONOREPO = "carrythroughsystems/omp-monorepo"
+GATEWAY = "carrythroughsystems/omp-session-gateway"
 REPOSITORIES = (MONOREPO, GATEWAY)
 CONFIG_PATH = Path(__file__).with_name("omp_channels.json")
 INTERVAL_SECONDS = 300

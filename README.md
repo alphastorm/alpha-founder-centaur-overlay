@@ -32,7 +32,7 @@ Configure one Console-managed Google OAuth credential with read-only Drive scope
 The host must mount both workflow trees:
 
 ```text
-KUBERNETES_WORKFLOW_DIRS=/home/agent/github/paradigmxyz/centaur/workflows:/home/agent/github/alphastorm/alpha-founder-centaur-overlay/workflows
+KUBERNETES_WORKFLOW_DIRS=/home/agent/github/paradigmxyz/centaur/workflows:/home/agent/github/carrythroughsystems/alpha-founder-centaur-overlay/workflows
 ```
 
 Centaur's workflow host inserts each tree and its parent into Python's import paths, so `workflows.gsuite.drive.GoogleDriveReadonlyClient` and `workflows.gsuite.http.build_http` resolve from Centaur. The intake subclass expands .144's ETL-only listing fields and applies explicit HTTP timeouts; it does not copy OAuth/refresh logic. The .144 sandbox Dockerfile provides google-api-python-client, httplib2 and PySocks. The actual deployed image, grant and folder sharing still require deployment proof.
@@ -64,21 +64,21 @@ Create the feed principal before loading the new workflows. Set these exact api-
 ```text
 WORKFLOW_HOST_SANDBOX=true
 WORKFLOW_ENABLE_MODE=all
-WORKFLOW_DIRS=/var/lib/centaur/repos/paradigmxyz/centaur/workflows:/var/lib/centaur/repos/alphastorm/alpha-founder-centaur-overlay/retained-host/workflows
-KUBERNETES_WORKFLOW_DIRS=/home/agent/github/paradigmxyz/centaur/workflows:/home/agent/github/alphastorm/alpha-founder-centaur-overlay/retained-host/workflows
+WORKFLOW_DIRS=/var/lib/centaur/repos/paradigmxyz/centaur/workflows:/var/lib/centaur/repos/carrythroughsystems/alpha-founder-centaur-overlay/retained-host/workflows
+KUBERNETES_WORKFLOW_DIRS=/home/agent/github/paradigmxyz/centaur/workflows:/home/agent/github/carrythroughsystems/alpha-founder-centaur-overlay/retained-host/workflows
 ```
 
 Pin the overlay to the integrated immutable commit (`OVERLAY_REF` below); never use a branch at runtime. Replace the existing tools extra source, rather than adding a second copy of the same personas:
 
 ```text
-KUBERNETES_TOOLS_EXTRA_SOURCES=[{"ref":"<OVERLAY_REF>","repo":"alphastorm/alpha-founder-centaur-overlay","subdir":"tools","visibility":"public"}]
+KUBERNETES_TOOLS_EXTRA_SOURCES=[{"ref":"<OVERLAY_REF>","repo":"carrythroughsystems/alpha-founder-centaur-overlay","subdir":"tools","visibility":"public"}]
 ```
 
 The retained-host repo cache and sandbox mount must contain **that same ref**, including `retained-host/workflows/`; an old tools pin or mixed cache checkout is not a deployment of this feed. This change does not deploy or alter the Studio intake mount.
 
 ### Channel configuration
 
-Edit the one non-secret mapping in `retained-host/workflows/omp_channels.json` before pinning the configured commit. Set `channels["alphastorm/omp-monorepo"]` and `channels["alphastorm/omp-session-gateway"]` to actual `C…`/`G…` conversation IDs. The supplied `<…>` placeholders, blank/name values, and explicit placeholder/example markers are inactive: unmapped repositories are neither read nor posted, and an entirely inactive mapping performs no GitHub requests or child starts. The feed's App and release-bot logins are configurable there; `founder_login` allows the founder's workflow-dispatch/schedule runs to be recognized, not to authorize any action. Defaults are `alpha-founder-source-alphastorm[bot]`, `alphastorm-release`, and `alphastorm`.
+Edit the one non-secret mapping in `retained-host/workflows/omp_channels.json` before pinning the configured commit. Set `channels["carrythroughsystems/omp-monorepo"]` and `channels["carrythroughsystems/omp-session-gateway"]` to actual `C…`/`G…` conversation IDs. The supplied `<…>` placeholders, blank/name values, and explicit placeholder/example markers are inactive: unmapped repositories are neither read nor posted, and an entirely inactive mapping performs no GitHub requests or child starts. The feed's App and release-bot logins are configurable there; `founder_login` allows the founder's workflow-dispatch/schedule runs to be recognized, not to authorize any action. Defaults are `alpha-founder-source-alphastorm[bot]`, `alphastorm-release`, and `alphastorm`.
 
 Set chart value `slackbotv2.channelDefaults` to this JSON object shape after replacing both key placeholders with the same real IDs (the chart renders `SLACKBOTV2_CHANNEL_DEFAULTS`):
 
@@ -97,7 +97,7 @@ Use Console admin forms; none of these steps need a release-bot write token in C
 
 1. Identify/precreate the two conversation principals at **`/console/principals/new`**. Normal SlackbotV2 thread keys `slack:CHANNEL:THREAD` derive foreign IDs `slack-channel-<lowercase-channel-id>`. If the actual thread key includes a team (`slack:TEAM:CHANNEL:THREAD`), the verified alternate is `slack-channel-<lowercase-team-id>-<lowercase-channel-id>`. Match the actual identity; do not create a persona-named principal. Display names can be `#omp-monorepo` and `#omp-session-gateway`.
 2. Create a third principal with foreign ID **`omp-release-feed`** before changing the mounts. Both `omp_release_feed` and `omp_release_feed_event` declare `WORKFLOW_PRINCIPAL = "omp-release-feed"`. A named principal lets both workflows share one explicit identity and grant. A string resolves an existing foreign ID/OID at `ae9dfdb8`; `True` would auto-register separate `workflow-<slugged-workflow-name>` identities instead.
-3. Create **one** fine-grained GitHub PAT covering **both** `alphastorm/omp-monorepo` and `alphastorm/omp-session-gateway`. Grant **read-only** Metadata, Contents, Issues, Pull requests and Actions; no writes, workflow dispatch, administration or release-signing authority. The founder chose to share this read-only credential with the two channel principals and the feed principal. It need not belong to the gateway release machine account.
+3. Create **one** fine-grained GitHub PAT with resource owner `carrythroughsystems`, covering **both** `carrythroughsystems/omp-monorepo` and `carrythroughsystems/omp-session-gateway`. Grant **read-only** Metadata, Contents, Issues, Pull requests and Actions; no writes, workflow dispatch, administration or release-signing authority. The founder chose to share this read-only credential with the two channel principals and the feed principal. It need not belong to the gateway release machine account.
 4. At **`/console/secrets/static/new`**, create **one** static secret for that PAT, with kind **`github_token`**, Replace mode, proxy value **`GITHUB_TOKEN`**, match headers **`Authorization`**, and no body/path/query matching or required-match flag. Store the actual PAT using the **Control plane** secret source (`source_type=control_plane`), not in this public repository. The profile supplies canonical `require: false` and rules for `api.github.com`, `github.com` and `api.githubcopilot.com`, with empty method/path filters. Read-only enforcement therefore comes from the PAT's repository permissions, not from the persona or HTTP-rule filters.
 5. Open each of the **three** `/console/principals/<principal-oid>` pages and grant the **same** static secret (`POST /console/principals/<oid>/grants`, form `grantable=static:<secret-oid>`). Inspect inherited roles/grants and requester-principal credentials too: remove conflicting or write-capable GitHub grants. Disable channel sandbox workflow-write capability; Slack must not start a release/order as a workaround. Do not grant this secret to the default/all-channel role. Keep release-bot and App write credentials outside all Slack/conversation/requester and feed principals.
 
