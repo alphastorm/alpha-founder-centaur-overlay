@@ -16,7 +16,7 @@ WORKFLOW_PRINCIPAL = "omp-release-feed"
 SCHEDULE = {
     "schedule_id": WORKFLOW_NAME,
     "interval_seconds": 300,
-    "enabled": True,
+    "enabled": False,
     "no_delivery": True,
 }
 PROGRESS_URL = "http://carrythrough-progress.carrythrough.svc:8000/api/maintenance/progress"

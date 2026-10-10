@@ -154,7 +154,8 @@ Deployment prerequisites (founder/lead at L1, not performed by this branch):
   all other maintenance APIs keep operator-only local-session auth. No founder
   session file, rotating guest token, or new auth plane is used.
 - Pin this overlay's integrated commit and use the retained-host workflow mount
-  and configured channel mapping above. Prove the exact proxy replacement rule,
+  after explicitly enabling this workflow's default-off `SCHEDULE` at L1.
+  Use the configured channel mapping above. Prove the exact proxy replacement rule,
   egress, API read and Slack dedupe on the retained deployment at L1; do not infer
   those effects from these local tests. Disable the chart reader to remove access.
 

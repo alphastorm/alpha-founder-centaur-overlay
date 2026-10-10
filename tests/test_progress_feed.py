@@ -18,6 +18,7 @@ def configured(monkeypatch):
 
 
 def test_idle_does_not_start_or_post(configured, monkeypatch):
+    assert poller.SCHEDULE["enabled"] is False  # L1 enables the configured schedule.
     monkeypatch.setattr(poller, "read_progress", lambda: {"conditions": []})
     ctx = FakeCtx()
     assert asyncio.run(poller.handler(poller.Input(), ctx)) == {"state": "polled", "events": 0}
