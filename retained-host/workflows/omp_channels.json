@@ -3,7 +3,7 @@
     "carrythroughsystems/omp-monorepo": "C0C7KC8LF1C",
     "carrythroughsystems/omp-session-gateway": "C0C8FN6KD7S"
   },
-  "app_bot_login": "alpha-founder-source-alphastorm[bot]",
+  "app_bot_login": "carrythroughsystems[bot]",
   "release_bot_login": "alphastorm-release",
   "founder_login": "alphastorm"
 }

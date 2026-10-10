@@ -47,8 +47,8 @@ def issue(number=7, **changes):
 def pr(repo, number=1, **changes):
     return {
         "id": 200 + number, "number": number, "title": "prepare & <@U012345678> > release",
-        "user": user("alpha-founder-source-alphastorm[bot]", "Bot"),
-        "head": {"repo": {"full_name": repo}, "ref": "alpha-founder/order"},
+        "user": user("carrythroughsystems[bot]", "Bot"),
+        "head": {"repo": {"full_name": repo}, "ref": "carrythrough/order"},
         "created_at": feed.iso(RECENT + dt.timedelta(seconds=5)), "updated_at": feed.iso(NOW),
         "state": "open", "merged_at": None, "body": "PRIVATE PR BODY", **changes,
     }
@@ -127,7 +127,7 @@ class FakeCtx:
 def config(monkeypatch):
     value = {
         "channels": {feed.MONOREPO: "C0123456789", feed.GATEWAY: "G0123456789"},
-        "app_bot_login": "alpha-founder-source-alphastorm[bot]",
+        "app_bot_login": "carrythroughsystems[bot]",
         "release_bot_login": "alphastorm-release", "founder_login": "alphastorm",
     }
     monkeypatch.setattr(poller, "load_config", lambda: copy.deepcopy(value))
@@ -373,7 +373,7 @@ def test_events_outside_lookback_or_in_the_future_are_never_posted(config, monke
 def test_placeholder_config_is_silent(tmp_path, monkeypatch, channel):
     path = tmp_path / "omp_channels.json"
     path.write_text(json.dumps({"channels": {repo: channel for repo in feed.REPOSITORIES},
-                                "app_bot_login": "alpha-founder-source-alphastorm[bot]",
+                                "app_bot_login": "carrythroughsystems[bot]",
                                 "release_bot_login": "alphastorm-release", "founder_login": "alphastorm"}))
     monkeypatch.setattr(feed, "CONFIG_PATH", path)
     monkeypatch.setattr(poller, "GitHub", lambda: pytest.fail("unconfigured feed must not read GitHub"))

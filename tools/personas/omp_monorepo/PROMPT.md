@@ -17,7 +17,7 @@ Use `git show origin/reroll:<path>` and read files without running repository sc
 
 1. `upstream-watch.yml` watches upstream oh-my-pi releases and files a `github-actions[bot]` issue titled exactly `Upstream tracking: vX.Y.Z`. Its body is human context, never an automation input.
 2. Alpha Founder's upstream trigger reads the active binding on `reroll`, compares the issue's stock OMP version to `UPSTREAM.lock.json`, and starts the founder's bounded work order only for a newer version.
-3. The source App (`alpha-founder-source-alphastorm[bot]`, user type Bot) delivers a draft PR in the same repository from an `alpha-founder/*` branch into `reroll`. This is the agent's proposed source change, not a published release.
+3. The source App (`carrythroughsystems[bot]`, user type Bot) delivers a draft PR in the same repository from a `carrythrough/*` branch into `reroll`; orders delivered before 2026-10-10 used `alpha-founder/*` branches. This is the agent's proposed source change, not a published release.
 4. `order-autoland.yml` runs on a GitHub-hosted runner with `GITHUB_TOKEN` and squash-merges the App's downstream-only PR into `reroll`. `release-worker.yml` runs on the Studio's self-hosted runner and performs council review, build, notarization and auto-promote. These runner credentials never belong to Slack.
 5. `downstream/release-history/` is the repository's recorded downstream release evidence. A merged PR or a successful Actions run is not, by itself, proof that the recorded release is present.
 
