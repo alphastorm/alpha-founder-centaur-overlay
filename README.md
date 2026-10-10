@@ -126,4 +126,36 @@ The legacy intake tests still use `CENTAUR_144_SOURCE`; feed tests can select an
 
 Actual channel IDs, membership, principal/grant provisioning, read-only PAT access, the retained-host image/proxy egress, cache pinning, and Slack delivery remain operator prerequisites. The workflow display names and permitted actors come from the pipeline contract, not Centaur's source. GitHub listing captures current issue/PR state, not every transient close/reopen between polls. Native source confirms discovery, placeholders, child idempotency propagation and Slack posting APIs; it does not prove this retained host has been deployed or that Slack provides crash-window deduplication.
 
+### Carrythrough operational progress feed
+
+`carrythrough_progress_feed` polls the bounded aggregate-only
+`GET http://carrythrough-progress.carrythrough.svc:8000/api/maintenance/progress`
+every 300 seconds under the **existing** `omp-release-feed` principal. It starts
+`carrythrough_progress_feed_event` only for actionable conditions. An empty
+condition list (including healthy idle loops) starts no children and posts nothing.
+Child idempotency keys hash condition key and stable message, never elapsed age;
+the checkpointed native Slack post has a matching deterministic client id. The
+destination is the existing configured monorepo channel. Existing OMP release
+failure reporting is unchanged. No live posts are part of provider-free tests.
+
+Deployment prerequisites (founder/lead at L1, not performed by this branch):
+
+- Create `op://Centaur/CARRYTHROUGH_PROGRESS_TOKEN` with a random credential of at
+  least 32 characters. Put the same value into the Carrythrough operator Secret
+  key `progress-reader-token`; enable chart `api.progressReader.enabled` (off by
+  default). Its private file becomes `CARRYTHROUGH_PROGRESS_READER_TOKEN_FILE`.
+- In Centaur custody, grant only `omp-release-feed` an Authorization replacement
+  rule for placeholder `CARRYTHROUGH_PROGRESS_TOKEN`, exact host
+  `carrythrough-progress.carrythrough.svc`, port 8000, `GET`, exact path
+  `/api/maintenance/progress`. Do not grant roles, channels, wildcard paths, or
+  writes. The actual bearer never enters workflow Python, checkpoints or output.
+- The chart's optional private Service/NetworkPolicies admit native iron-proxy
+  pods to the API port. The API accepts this bearer **only** on the progress GET;
+  all other maintenance APIs keep operator-only local-session auth. No founder
+  session file, rotating guest token, or new auth plane is used.
+- Pin this overlay's integrated commit and use the retained-host workflow mount
+  and configured channel mapping above. Prove the exact proxy replacement rule,
+  egress, API read and Slack dedupe on the retained deployment at L1; do not infer
+  those effects from these local tests. Disable the chart reader to remove access.
+
 No license is granted for this repository's contents.
