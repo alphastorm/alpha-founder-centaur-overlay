@@ -352,7 +352,10 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "alpha-founder.drive-intake-result.v1",
+      "enum": [
+        "carrythrough.drive-intake-result.v1",
+        "alpha-founder.drive-intake-result.v1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

@@ -15,7 +15,7 @@ The overlay contains no Alpha Founder product data, provider credentials, GitHub
 
 ## Studio Drive intake
 
-`workflows/drive_intake.py` exports `alpha_founder_drive_intake` for Centaur **0.1.144 (`acf52068`)**. Alpha Founder supplies the `alpha-founder.drive-intake-request.v1` JSON contract and receives `alpha-founder.drive-intake-result.v1`. Generated request/result schemas in `tests/schemas/` were exported from Alpha Founder commit **`163eed54`** using `model_json_schema()`; Alpha Founder remains the owner of the wire contract. No Pydantic dependency is needed in the workflow host.
+`workflows/drive_intake.py` exports `carrythrough_drive_intake`, using the native helpers introduced in Centaur **0.1.144 (`acf52068`)** and retained in qualified **0.1.173**. It accepts exactly `carrythrough.drive-intake-request.v1` and `alpha-founder.drive-intake-request.v1`, normalizes the request to the current schema, and emits `carrythrough.drive-intake-result.v1`. Carrythrough beta.1 retains both result readers. The schemas in `tests/schemas/` retain their **`163eed54`** export baseline with the finite beta.1 schema-name enums; Carrythrough owns the wire contract. No Pydantic dependency is needed in the workflow host.
 
 - `zip_file`: one explicitly selected ZIP is one packet.
 - `zip_drops`: each direct child is inventoried; ZIPs are acquired, non-ZIP children are `unsupported_type`, and shortcuts are reported without following them. No recursive drop-folder scan occurs.
@@ -24,6 +24,8 @@ The overlay contains no Alpha Founder product data, provider credentials, GitHub
 Discovery exhausts `nextPageToken` with Shared Drive flags and `trashed=false`. Limits bound file objects (including traversed child folders), global listing pages, folder depth (root = 0) and newly acquired bytes. Reaching a limit only marks a scan incomplete when work remains; the first global bound is the result's `incomplete_reason`. Per-file limits produce `too_large` rather than an invented global reason. `complete` is not a claim of readable evidence: every item retains its separate acquisition status, and preparation/coverage belong to alpha-diligence. Duplicate Drive IDs are observed once; renames preserve IDs. Matching binary MD5 (preferred over a rename-only version change), or a matching version when no comparable MD5 exists, reuses the supplied `known` SHA-256 without downloading. Unchanged files consume no new-upload byte budget.
 
 ### Principal and Google grant
+
+The caller JWT subject (`carrythrough-drive-intake` in beta.1) is not the workflow execution principal. Preserve the existing **`alpha-founder-drive-intake`** execution identity and its native Google grant when updating the workflow name; this is credential continuity, not a legacy workflow alias. Do not rename/recreate that principal or copy its OAuth credential. The Drive-only delta is composed on overlay main with `retained-host/workflows/linear_snapshot.py` and `linear_status.py` retained; Studio continues to mount only its existing workflow tree. Pin the reviewed resulting commit, never the rename candidate branch.
 
 Create an existing Centaur principal with foreign ID **`alpha-founder-drive-intake`**. The workflow declares `WORKFLOW_PRINCIPAL = "alpha-founder-drive-intake"`; in .144 a string resolves an existing foreign ID/OID and an unknown reference fails startup. `True` would instead register `workflow-alpha-founder-drive-intake`, which is not this workflow's identity. Workflow-host sandboxing must be enabled (`WORKFLOW_HOST_SANDBOX=true`).
 

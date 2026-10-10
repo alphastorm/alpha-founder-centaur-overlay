@@ -264,7 +264,7 @@ def acquisitions(result):
 
 
 def test_native_helpers_resolve_with_both_host_workflow_trees():
-    assert intake.WORKFLOW_NAME == "alpha_founder_drive_intake"
+    assert intake.WORKFLOW_NAME == "carrythrough_drive_intake"
     assert intake.WORKFLOW_PRINCIPAL == "alpha-founder-drive-intake"
     assert Path(inspect.getfile(intake.GoogleDriveReadonlyClient)) == CENTAUR / "workflows/gsuite/drive.py"
     assert Path(inspect.getfile(intake.build_http)) == CENTAUR / "workflows/gsuite/http.py"
@@ -273,14 +273,27 @@ def test_native_helpers_resolve_with_both_host_workflow_trees():
     assert "163eed54" in RESULT_SCHEMA["$comment"]
 
 
-def test_input_defaults_match_vendored_request(transports):
+@pytest.mark.parametrize("schema", [
+    "carrythrough.drive-intake-request.v1",
+    "alpha-founder.drive-intake-request.v1",
+    None,
+])
+def test_input_defaults_match_vendored_request(schema, transports):
     google, server = transports
     root = google.add(1, "company", intake.FOLDER)
-    parsed = intake.Input.parse(request(root))
+    inp = request(root)
+    if schema is None:
+        inp.pop("schema_version")
+    else:
+        inp["schema_version"] = schema
+    REQUEST.validate(inp)
+    parsed = intake.Input.parse(inp)
+    assert parsed["schema_version"] == "carrythrough.drive-intake-request.v1"
     REQUEST.validate(parsed)
     assert parsed["limits"]["max_files"] == 500
     assert parsed["acquire"] is True
     result = run(parsed)
+    assert result["schema_version"] == "carrythrough.drive-intake-result.v1"
     assert result["complete"] is True
     assert result["packets"][0]["items"] == []
     assert server.attempts == []
@@ -288,6 +301,8 @@ def test_input_defaults_match_vendored_request(transports):
 
 @pytest.mark.parametrize("change", [
     {"unknown": True}, {"schema_version": "wrong"}, {"request_id": "short"},
+    {"schema_version": "carrythrough.drive-intake-request.v2"},
+    {"schema_version": "alpha-founder.drive-intake-request.v2"},
     {"root_file_id": "short"}, {"root_kind": "file"}, {"intake_shape": "other"},
     {"acquire": 1}, {"limits": {"max_files": True}}, {"limits": {"max_depth": 17}},
     {"limits": {"max_pages": 0}}, {"limits": {"unknown": 1}}, {"known": []},

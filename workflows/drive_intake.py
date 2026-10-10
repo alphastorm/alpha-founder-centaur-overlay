@@ -16,11 +16,12 @@ from urllib.parse import urlsplit
 from workflows.gsuite.drive import GoogleDriveReadonlyClient
 from workflows.gsuite.http import build_http
 
-WORKFLOW_NAME = "alpha_founder_drive_intake"
+WORKFLOW_NAME = "carrythrough_drive_intake"
 # A string selects an EXISTING foreign id in .144; True would create a different id.
 WORKFLOW_PRINCIPAL = "alpha-founder-drive-intake"
-REQUEST_SCHEMA = "alpha-founder.drive-intake-request.v1"
-RESULT_SCHEMA = "alpha-founder.drive-intake-result.v1"
+REQUEST_SCHEMA = "carrythrough.drive-intake-request.v1"
+SUPPORTED_REQUEST_SCHEMAS = (REQUEST_SCHEMA, "alpha-founder.drive-intake-request.v1")
+RESULT_SCHEMA = "carrythrough.drive-intake-result.v1"
 DRIVE_ID = re.compile(r"[A-Za-z0-9_-]{10,128}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 CAPABILITY = re.compile(r"[A-Za-z0-9_-]{43}\Z")
@@ -82,7 +83,7 @@ class Input(dict):
         }
         data = dict(_object(raw, required | {"schema_version", "acquire", "known"},
                             required, "input"))
-        if data.get("schema_version", REQUEST_SCHEMA) != REQUEST_SCHEMA:
+        if data.get("schema_version", REQUEST_SCHEMA) not in SUPPORTED_REQUEST_SCHEMAS:
             raise ValueError("schema_version is invalid")
         data["schema_version"] = REQUEST_SCHEMA
         _string(data["request_id"], "request_id", 8, 128)
