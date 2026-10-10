@@ -1,0 +1,31 @@
+{
+  "id": "issue-1",
+  "identifier": "CT-1",
+  "title": "Repair synthetic regression #12",
+  "description": "Preserve the defined input and add a deterministic regression check.",
+  "url": "https://linear.app/carrythrough/issue/CT-1/synthetic-regression",
+  "updatedAt": "2026-10-10T01:00:00.000Z",
+  "team": {
+    "id": "team-1",
+    "key": "CT"
+  },
+  "project": {
+    "id": "project-1"
+  },
+  "state": {
+    "id": "state-1",
+    "name": "Todo",
+    "type": "unstarted"
+  },
+  "labels": {
+    "nodes": [
+      {
+        "name": "internal"
+      }
+    ],
+    "pageInfo": {
+      "hasNextPage": false,
+      "endCursor": null
+    }
+  }
+}

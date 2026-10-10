@@ -126,4 +126,61 @@ The legacy intake tests still use `CENTAUR_144_SOURCE`; feed tests can select an
 
 Actual channel IDs, membership, principal/grant provisioning, read-only PAT access, the retained-host image/proxy egress, cache pinning, and Slack delivery remain operator prerequisites. The workflow display names and permitted actors come from the pipeline contract, not Centaur's source. GitHub listing captures current issue/PR state, not every transient close/reopen between polls. Native source confirms discovery, placeholders, child idempotency propagation and Slack posting APIs; it does not prove this retained host has been deployed or that Slack provides crash-window deduplication.
 
+## Carrythrough Linear native workflows
+
+`workflows/linear_snapshot.py` registers **`carrythrough_linear_snapshot`** and
+`workflows/linear_status.py` registers **`carrythrough_linear_status`**. Both resolve
+the existing principal foreign id **`carrythrough-linear`**. Precreate that principal
+before mounting this overlay workflow tree, pin the resulting commit SHA, and keep
+`WORKFLOW_HOST_SANDBOX=true`. Do not enable stock linearbot work admission.
+
+Create a Centaur static secret named/foreign-id **`LINEAR_API_KEY`**, kind **`custom`**,
+Replace mode, `proxy_value: LINEAR_API_KEY`, `match_headers: [Authorization]`, with
+no body/path/query matching. Its source is the existing 1Password broker transport
+(`1password` or the installation's `1password_connect`),
+`secret_ref: op://Centaur/LINEAR_API_KEY/credential`, vault **Centaur**. Grant only
+`static:<secret-oid>` to `carrythrough-linear`. Restrict its request rule to
+`host: api.linear.app`, `http_methods: [POST]`, `paths: [/graphql]`. The server-mode
+`centaur_sdk.secret` stub is exactly `LINEAR_API_KEY`; the workflow refuses a copied
+raw credential. Only iron-proxy resolves/replaces it. No token belongs in workflow
+input, an environment variable, output, or this repository. The token should see
+internal data only; GraphQL read/write share a URL, so team/project and status
+eligibility are application checks, not provider-token subscopes.
+
+Snapshot input/result discriminators are `carrythrough.linear-snapshot-request.v1`
+and `carrythrough.linear-snapshot-result.v1`. Requests bind organization id and URL
+slug, allowed team/project ids, optional label/state filters, one issue identifier
+or a poll, total page and byte limits. Reads use 15-second sockets, no redirects or
+HTTP retry, bounded pagination, and reject partial GraphQL errors. The normalized
+result explicitly omits attachments, comments and relations. Carrythrough validates
+it independently and stores the immutable source artifact; source text grants no
+authority.
+
+Status discriminators are `carrythrough.linear-status-request.v1` and
+`carrythrough.linear-status-result.v1`. The caller commits the effect identity
+`linear-status:<work-item>:<event>` before dispatch and sets `max_attempts: 1`. The
+workflow rechecks the issue scope, writes one comment (or a configured state only
+for an actual merged/closed event), and uses **`ctx.post_to_slack`**, the existing
+ADR-0121 feed mechanism. It needs no sandbox Slack secret: api-rs uses its existing
+bot. An explicit configured channel/thread and membership are deployment
+prerequisites. `client_msg_id` is derived from the effect key; ambiguous native or
+Slack writes remain pending, never blindly retried. Do not manually rerun a failed
+workflow or substitute a new key to bypass an unresolved effect.
+
+Carrythrough deployment profile `engineering.linear_intake` renders chart
+`api.linearIntake` and JSON `CARRYTHROUGH_LINEAR_INTAKE`. Required keys are
+`workspace`, `workspaceSlug`, `allowedTeams`, and per-team `repositoryBindings`.
+Optional `allowedProjects`, `labels`, `states`, `pollIntervalSeconds`, `maxPages`,
+`maxBytes` bound reads; `statusIssueIds`, `slackChannel`, `slackThreadTs`, and
+`statusStateIds` select internal status destinations. `autoDeliverDraftPr` is
+false-only: Linear always uses the founder-review delivery path. Exact source hash
+`autoQualifyTemplate` applies only to internal work, never customer authority.
+See Carrythrough's `docs/guides/native-integrations.md` for revision/closeout rules
+and the complete L1 steps.
+
+Provider-free proof: `python -m pytest tests/test_linear_snapshot.py tests/test_linear_status.py`.
+The Mac discovery attempt on 2026-10-10 was blocked by locked 1Password; no live
+workspace/team ids, grant availability, Linear/Slack write or .173 mounted workflow
+execution is claimed by these tests.
+
 No license is granted for this repository's contents.
