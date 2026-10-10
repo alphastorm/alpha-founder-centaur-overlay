@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "NativeSourceError": {
+      "additionalProperties": false,
+      "description": "Only bounded machine codes cross the credential boundary, never provider text.",
+      "properties": {
+        "code": {
+          "enum": [
+            "access_denied",
+            "not_found",
+            "out_of_scope",
+            "rate_limited",
+            "partial_result",
+            "bounds_exceeded",
+            "source_changed",
+            "unavailable",
+            "invalid_result"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "resource_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Id"
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry After Seconds"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "NativeSourceError",
+      "type": "object"
+    },
+    "NotionReadPage": {
+      "additionalProperties": false,
+      "properties": {
+        "parent_id": {
+          "pattern": "^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+          "title": "Parent Id",
+          "type": "string"
+        },
+        "start_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Cursor"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "has_more": {
+          "title": "Has More",
+          "type": "boolean"
+        },
+        "results": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "maxItems": 100,
+          "title": "Results",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_id",
+        "has_more",
+        "results"
+      ],
+      "title": "NotionReadPage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "carrythrough.notion-snapshot-result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "workspace_id": {
+      "pattern": "^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+      "title": "Workspace Id",
+      "type": "string"
+    },
+    "resource_id": {
+      "pattern": "^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "resource_kind": {
+      "enum": [
+        "page",
+        "database"
+      ],
+      "title": "Resource Kind",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "available",
+        "truncated",
+        "unavailable"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "resource": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resource"
+    },
+    "final_revision": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Revision"
+    },
+    "block_pages": {
+      "items": {
+        "$ref": "#/$defs/NotionReadPage"
+      },
+      "maxItems": 50,
+      "title": "Block Pages",
+      "type": "array"
+    },
+    "database_pages": {
+      "items": {
+        "$ref": "#/$defs/NotionReadPage"
+      },
+      "maxItems": 50,
+      "title": "Database Pages",
+      "type": "array"
+    },
+    "omissions": {
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Omissions",
+      "type": "array"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NativeSourceError"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "workspace_id",
+    "resource_id",
+    "resource_kind",
+    "state",
+    "resource"
+  ],
+  "title": "NotionSnapshotResult",
+  "type": "object"
+}

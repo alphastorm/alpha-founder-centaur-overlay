@@ -1,0 +1,140 @@
+{
+  "schema_version": "carrythrough.notion-snapshot-result.v1",
+  "request_id": "notion-fixture-page",
+  "workspace_id": "08ddf423-595c-8092-935f-e1b062932d2a",
+  "resource_id": "28ddf423-595c-8092-935f-e1b062932d2a",
+  "resource_kind": "page",
+  "state": "available",
+  "resource": {
+    "object": "page",
+    "id": "28ddf423-595c-8092-935f-e1b062932d2a",
+    "url": "https://www.notion.so/28ddf423595c8092935fe1b062932d2a",
+    "last_edited_time": "2026-07-14T08:42:00.000Z",
+    "archived": false,
+    "in_trash": false,
+    "properties": {
+      "Name": {
+        "type": "title",
+        "title": [
+          {
+            "plain_text": "Engineering Onboarding"
+          }
+        ]
+      }
+    }
+  },
+  "final_revision": "2026-07-14T08:42:00.000Z",
+  "block_pages": [
+    {
+      "parent_id": "28ddf423-595c-8092-935f-e1b062932d2a",
+      "start_cursor": null,
+      "next_cursor": null,
+      "has_more": false,
+      "results": [
+        {
+          "object": "block",
+          "id": "68ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "type": "heading_1",
+          "has_children": false,
+          "parent": {
+            "type": "page_id",
+            "page_id": "28ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "heading_1": {
+            "rich_text": [
+              {
+                "plain_text": "Dev Setup"
+              }
+            ]
+          }
+        },
+        {
+          "object": "block",
+          "id": "18ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "type": "toggle",
+          "has_children": true,
+          "parent": {
+            "type": "page_id",
+            "page_id": "28ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "toggle": {
+            "rich_text": [
+              {
+                "plain_text": "Install dependencies."
+              }
+            ]
+          }
+        },
+        {
+          "object": "block",
+          "id": "78ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "type": "file",
+          "has_children": false,
+          "parent": {
+            "type": "page_id",
+            "page_id": "28ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "file": {
+            "type": "external",
+            "external": {
+              "url": "https://files.invalid/private.pdf"
+            }
+          }
+        },
+        {
+          "object": "block",
+          "id": "88ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "type": "unsupported",
+          "has_children": false,
+          "parent": {
+            "type": "page_id",
+            "page_id": "28ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "unsupported": {
+            "rich_text": [
+              {
+                "plain_text": ""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "parent_id": "18ddf423-595c-8092-935f-e1b062932d2a",
+      "start_cursor": null,
+      "next_cursor": null,
+      "has_more": false,
+      "results": [
+        {
+          "object": "block",
+          "id": "98ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "type": "paragraph",
+          "has_children": false,
+          "parent": {
+            "type": "block_id",
+            "block_id": "18ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "paragraph": {
+            "rich_text": [
+              {
+                "plain_text": "Use event_id from the tracking plan."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "database_pages": [],
+  "omissions": [],
+  "error": {
+    "code": "partial_result",
+    "resource_id": "28ddf423-595c-8092-935f-e1b062932d2a"
+  }
+}

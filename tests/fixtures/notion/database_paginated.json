@@ -1,0 +1,132 @@
+{
+  "schema_version": "carrythrough.notion-snapshot-result.v1",
+  "request_id": "notion-fixture-database",
+  "workspace_id": "08ddf423-595c-8092-935f-e1b062932d2a",
+  "resource_id": "38ddf423-595c-8092-935f-e1b062932d2a",
+  "resource_kind": "database",
+  "state": "available",
+  "resource": {
+    "object": "database",
+    "id": "38ddf423-595c-8092-935f-e1b062932d2a",
+    "last_edited_time": "2026-07-14T08:42:00.000Z",
+    "title": [
+      {
+        "plain_text": "Event tracking"
+      }
+    ],
+    "data_sources": [
+      {
+        "id": "48ddf423-595c-8092-935f-e1b062932d2a",
+        "name": "Tracking plan"
+      }
+    ],
+    "archived": false,
+    "in_trash": false
+  },
+  "final_revision": "2026-07-14T08:42:00.000Z",
+  "block_pages": [],
+  "database_pages": [
+    {
+      "parent_id": "48ddf423-595c-8092-935f-e1b062932d2a",
+      "start_cursor": null,
+      "next_cursor": "cursor-two",
+      "has_more": true,
+      "results": [
+        {
+          "object": "page",
+          "id": "58ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "parent": {
+            "type": "data_source_id",
+            "data_source_id": "48ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "properties": {
+            "Name": {
+              "type": "title",
+              "title": [
+                {
+                  "plain_text": "Event emitted"
+                }
+              ]
+            },
+            "Done": {
+              "type": "checkbox",
+              "checkbox": true
+            },
+            "Owner": {
+              "type": "people",
+              "people": [
+                {
+                  "name": "Private owner"
+                }
+              ]
+            },
+            "Files": {
+              "type": "files",
+              "files": [
+                {
+                  "name": "Private attachment",
+                  "external": {
+                    "url": "https://files.invalid/secret.pdf"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "parent_id": "48ddf423-595c-8092-935f-e1b062932d2a",
+      "start_cursor": "cursor-two",
+      "next_cursor": null,
+      "has_more": false,
+      "results": [
+        {
+          "object": "page",
+          "id": "a8ddf423-595c-8092-935f-e1b062932d2a",
+          "last_edited_time": "2026-07-14T08:42:00.000Z",
+          "parent": {
+            "type": "data_source_id",
+            "data_source_id": "48ddf423-595c-8092-935f-e1b062932d2a"
+          },
+          "properties": {
+            "Name": {
+              "type": "title",
+              "title": [
+                {
+                  "plain_text": "Event received"
+                }
+              ]
+            },
+            "Done": {
+              "type": "checkbox",
+              "checkbox": true
+            },
+            "Owner": {
+              "type": "people",
+              "people": [
+                {
+                  "name": "Private owner"
+                }
+              ]
+            },
+            "Files": {
+              "type": "files",
+              "files": [
+                {
+                  "name": "Private attachment",
+                  "external": {
+                    "url": "https://files.invalid/secret.pdf"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "omissions": [],
+  "error": null
+}

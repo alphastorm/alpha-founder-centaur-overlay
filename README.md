@@ -51,6 +51,42 @@ Tests import the native helpers from `~/.cache/centaur-144-src` (override `CENTA
 uv run --no-project --with pytest --with jsonschema --with google-api-python-client --with httplib2 --with pysocks pytest -q
 ```
 
+## Notion read contract — fixture-only, off by default
+
+`workflows/notion_snapshot.py` supplies the bounded `carrythrough_notion_snapshot`
+read implementation and the API-owned `carrythrough.notion-snapshot-request.v1` /
+`carrythrough.notion-snapshot-result.v1` schemas under `tests/schemas/`. Synthetic
+page/nested-block, paginated database, partial-error and truncated fixtures port
+the shadow workspace's Notion cases. Tests make no live Notion call. No permitted
+source or grant/deployment proof was supplied; this is **fixture readiness only**.
+
+Native discovery sees no callable `handler` by default, including when
+`WORKFLOW_ENABLE_MODE=all`. Only explicit `CARRYTHROUGH_NOTION_SNAPSHOT_ENABLED=1`
+admits the handler; this branch does not register a principal, enable a deployed
+workflow, provision a credential, or add a schedule. Before any approved live proof,
+precreate the named `carrythrough-notion` principal and grant only that principal
+the existing Centaur-custodied `NOTION_API_KEY`. Configure proxy replacement of the
+`Authorization: Bearer NOTION_API_KEY` placeholder for `api.notion.com` read paths
+and `POST /v1/data_sources/<id>/query`; do not copy a real token into Python, workflow
+input or environment. The workspace UUID is checked through the bot identity from
+`GET /v1/users/me` before reading the explicitly selected page/database.
+
+The implementation pins Notion API version `2025-09-03`, uses 30-second requests,
+refuses redirects, and makes no HTTP retry. Pagination, blocks, rows, depth and
+total response bytes are bounded by the request. It does not search, retrieve
+comments, follow linked pages or download media. Partial errors, revoked/deleted
+sources, source-change and exceeded byte budgets return `unavailable` with machine
+codes and no captured content; rate limits retain a bounded retry-after hint.
+Truncated pagination/children retain explicit omissions, not a complete-source
+claim. Carrythrough separately validates scope, IDs, revisions and pagination,
+normalizes chosen text/properties, and admits only available captures as N1
+immutable artifacts. Original Drive file ingestion remains separate and unchanged.
+
+Run the complete provider-free overlay command above. The native discovery test
+uses the same local `CENTAUR_144_SOURCE` prerequisite as the existing Drive suite;
+it is not live qualification on a successor runtime. The normative API contract
+and operational boundaries are in Carrythrough's `docs/guides/native-integrations.md`.
+
 ## Retained-host OMP channels (Centaur `ae9dfdb8`)
 
 `tools/personas/omp_monorepo/` and `tools/personas/omp_session_gateway/` each contain `PROMPT.md` and a `pyproject.toml` with `[tool.centaur] type = "persona"`. At `ae9dfdb8`, `tool_discovery.rs` scans children and grandchildren of each tools source, uses the directory basename as the persona ID, and reads `prompt_file`. These IDs satisfy SlackbotV2's `[A-Za-z0-9][A-Za-z0-9._-]*` pattern. `PersonaRegistry` makes the selected prompt available as `/home/agent/AGENTS_PERSONA.md`; the public tools-source visibility makes both personas discoverable even with public repo-cache access. This matches the `centaur-founder-kit` packaging precedent, not the older standalone `personas/qualification-reviewer.md` file.

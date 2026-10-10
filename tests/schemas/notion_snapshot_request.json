@@ -1,0 +1,78 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "carrythrough.notion-snapshot-request.v1",
+      "default": "carrythrough.notion-snapshot-request.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "workspace_id": {
+      "pattern": "^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+      "title": "Workspace Id",
+      "type": "string"
+    },
+    "resource_id": {
+      "pattern": "^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "resource_kind": {
+      "enum": [
+        "page",
+        "database"
+      ],
+      "title": "Resource Kind",
+      "type": "string"
+    },
+    "max_pages": {
+      "default": 20,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Max Pages",
+      "type": "integer"
+    },
+    "max_blocks": {
+      "default": 500,
+      "maximum": 5000,
+      "minimum": 1,
+      "title": "Max Blocks",
+      "type": "integer"
+    },
+    "max_rows": {
+      "default": 100,
+      "maximum": 500,
+      "minimum": 1,
+      "title": "Max Rows",
+      "type": "integer"
+    },
+    "max_depth": {
+      "default": 6,
+      "maximum": 16,
+      "minimum": 0,
+      "title": "Max Depth",
+      "type": "integer"
+    },
+    "max_bytes": {
+      "default": 262144,
+      "maximum": 1048576,
+      "minimum": 1024,
+      "title": "Max Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "workspace_id",
+    "resource_id",
+    "resource_kind"
+  ],
+  "title": "NotionSnapshotRequest",
+  "type": "object"
+}
