@@ -264,13 +264,13 @@ def acquisitions(result):
 
 
 def test_native_helpers_resolve_with_both_host_workflow_trees():
-    assert intake.WORKFLOW_NAME == "alpha_founder_drive_intake"
-    assert intake.WORKFLOW_PRINCIPAL == "alpha-founder-drive-intake"
+    assert intake.WORKFLOW_NAME == "carrythrough_drive_intake"
+    assert intake.WORKFLOW_PRINCIPAL == "carrythrough-drive-intake"
     assert Path(inspect.getfile(intake.GoogleDriveReadonlyClient)) == CENTAUR / "workflows/gsuite/drive.py"
     assert Path(inspect.getfile(intake.build_http)) == CENTAUR / "workflows/gsuite/http.py"
     assert issubclass(intake.DriveClient, intake.GoogleDriveReadonlyClient)
-    assert "163eed54" in REQUEST_SCHEMA["$comment"]
-    assert "163eed54" in RESULT_SCHEMA["$comment"]
+    assert "Carrythrough commit e883b738" in REQUEST_SCHEMA["$comment"]
+    assert "Carrythrough commit e883b738" in RESULT_SCHEMA["$comment"]
 
 
 def test_input_defaults_match_vendored_request(transports):

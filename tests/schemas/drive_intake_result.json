@@ -352,7 +352,10 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "alpha-founder.drive-intake-result.v1",
+      "enum": [
+        "carrythrough.drive-intake-result.v1",
+        "alpha-founder.drive-intake-result.v1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -426,5 +429,5 @@
   ],
   "title": "DriveIntakeResult",
   "type": "object",
-  "$comment": "Exported from alpha_founder.drive_intake_contract at Alpha Founder commit 163eed54 (2026-10-06); generated with model_json_schema()."
+  "$comment": "Exported from Carrythrough commit e883b738 using model_json_schema()."
 }

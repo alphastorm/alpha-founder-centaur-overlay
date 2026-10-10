@@ -2,7 +2,7 @@
   "$defs": {
     "KnownFingerprint": {
       "additionalProperties": false,
-      "description": "What Alpha Founder already holds for one file; an unchanged file is not re-sent.",
+      "description": "What Carrythrough already holds for one file; an unchanged file is not re-sent.",
       "properties": {
         "md5_checksum": {
           "anyOf": [
@@ -88,8 +88,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "alpha-founder.drive-intake-request.v1",
-      "default": "alpha-founder.drive-intake-request.v1",
+      "default": "carrythrough.drive-intake-request.v1",
+      "enum": [
+        "carrythrough.drive-intake-request.v1",
+        "alpha-founder.drive-intake-request.v1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -169,5 +172,5 @@
   ],
   "title": "DriveIntakeRequest",
   "type": "object",
-  "$comment": "Exported from alpha_founder.drive_intake_contract at Alpha Founder commit 163eed54 (2026-10-06); generated with model_json_schema()."
+  "$comment": "Exported from Carrythrough commit e883b738 using model_json_schema()."
 }

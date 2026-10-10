@@ -1,6 +1,6 @@
-# Alpha Founder Centaur Overlay
+# Carrythrough Centaur Overlay
 
-This public repository contains the non-secret organization overlay for Alpha Founder: Gate B qualification assets, deterministic investor-source intake, and read-only OMP repository companions with a retained-host status feed.
+This public repository contains the non-secret organization overlay for Carrythrough: Gate B qualification assets, deterministic investor-source intake, and read-only OMP repository companions with a retained-host status feed.
 
 It contains:
 
@@ -11,11 +11,11 @@ It contains:
 - two discoverable OMP repository personas and a retained-host-only GitHub-to-Slack feed;
 - deterministic local tests.
 
-The overlay contains no Alpha Founder product data, provider credentials, GitHub credentials or secrets. Qualification and deployment pin an immutable commit SHA; `main` is never a runtime selector. The qualification assets remain local and non-mutating. Drive intake reads a selected Google source and uploads acquired bytes only to the supplied Alpha Founder source-slot capability.
+The overlay contains no Carrythrough product data, provider credentials, GitHub credentials or secrets. Qualification and deployment pin an immutable commit SHA; `main` is never a runtime selector. The qualification assets remain local and non-mutating. Drive intake reads a selected Google source and uploads acquired bytes only to the supplied Carrythrough source-slot capability.
 
 ## Studio Drive intake
 
-`workflows/drive_intake.py` exports `alpha_founder_drive_intake` for Centaur **0.1.144 (`acf52068`)**. Alpha Founder supplies the `alpha-founder.drive-intake-request.v1` JSON contract and receives `alpha-founder.drive-intake-result.v1`. Generated request/result schemas in `tests/schemas/` were exported from Alpha Founder commit **`163eed54`** using `model_json_schema()`; Alpha Founder remains the owner of the wire contract. No Pydantic dependency is needed in the workflow host.
+`workflows/drive_intake.py` exports `carrythrough_drive_intake` for Centaur **0.1.144 (`acf52068`)**. Carrythrough supplies the `carrythrough.drive-intake-request.v1` JSON contract and receives `carrythrough.drive-intake-result.v1`. Generated request/result schemas in `tests/schemas/` were exported from Carrythrough commit **`163eed54`** using `model_json_schema()`; Carrythrough remains the owner of the wire contract. No Pydantic dependency is needed in the workflow host.
 
 - `zip_file`: one explicitly selected ZIP is one packet.
 - `zip_drops`: each direct child is inventoried; ZIPs are acquired, non-ZIP children are `unsupported_type`, and shortcuts are reported without following them. No recursive drop-folder scan occurs.
@@ -25,7 +25,7 @@ Discovery exhausts `nextPageToken` with Shared Drive flags and `trashed=false`. 
 
 ### Principal and Google grant
 
-Create an existing Centaur principal with foreign ID **`alpha-founder-drive-intake`**. The workflow declares `WORKFLOW_PRINCIPAL = "alpha-founder-drive-intake"`; in .144 a string resolves an existing foreign ID/OID and an unknown reference fails startup. `True` would instead register `workflow-alpha-founder-drive-intake`, which is not this workflow's identity. Workflow-host sandboxing must be enabled (`WORKFLOW_HOST_SANDBOX=true`).
+Create an existing Centaur principal with foreign ID **`carrythrough-drive-intake`**. The workflow declares `WORKFLOW_PRINCIPAL = "carrythrough-drive-intake"`; in .144 a string resolves an existing foreign ID/OID and an unknown reference fails startup. `True` would instead register `workflow-carrythrough-drive-intake`, which is not this workflow's identity. Workflow-host sandboxing must be enabled (`WORKFLOW_HOST_SANDBOX=true`).
 
 Configure one Console-managed Google OAuth credential with read-only Drive scope (`https://www.googleapis.com/auth/drive.readonly`) and grant its proxy-injection wrapper **only to this principal**, never the default/all-channel principal or investor readers. Share each selected root with that credential's Google account. A configured binding restricts traversal, not the account-wide OAuth scope. Iron-proxy performs bearer injection and token refresh; the workflow neither reads nor accepts a Google token, and does not fall back to a requester's identity. Root 401/invalid-grant, 403 and 404 become `invalid_grant`, `access_denied` and `root_not_found` with actionable messages. Revocation stops further acquisition in that run.
 
@@ -39,9 +39,9 @@ Centaur's workflow host inserts each tree and its parent into Python's import pa
 
 ### Upload capability and recovery
 
-The request's `upload_url` is an HTTP(S) base such as `http://alpha-founder-patch-intake.alpha-founder.svc:8091/v1/source`, and `upload_token` is a 43-character one-use source-slot capability, **not a Google credential**. Permit workflow-run pods to reach this intake through the separately enabled Drive-intake NetworkPolicy. The workflow sends streaming `PUT <upload_url>/<file_id>` with `Authorization: Bearer <upload_token>` and checks the intake's `{sha256, bytes}` receipt. It never returns the capability or a sandbox-local filename. HTTP redirects are not followed.
+The request's `upload_url` is an HTTP(S) base such as `http://carrythrough-patch-intake.carrythrough.svc:8091/v1/source`, and `upload_token` is a 43-character one-use source-slot capability, **not a Google credential**. Permit workflow-run pods to reach this intake through the separately enabled Drive-intake NetworkPolicy. The workflow sends streaming `PUT <upload_url>/<file_id>` with `Authorization: Bearer <upload_token>` and checks the intake's `{sha256, bytes}` receipt. It never returns the capability or a sandbox-local filename. HTTP redirects are not followed.
 
-Downloads use MediaIoBaseDownload into an automatically removed temporary file with an enforced byte ceiling and running SHA-256; metadata is rechecked before upload to detect source changes. Google and upload I/O use 60-second socket timeouts and at most three attempts for transient errors. .144 ignores `ctx.step` retry/timeout arguments, so none are relied on here. Discovery and completed per-file acquisitions are checkpointed. A crash after an upload but before checkpoint completion may repeat the PUT: identical bytes converge on the existing source slot; changed bytes are rejected, not overwritten. A new sync is required for recorded failures. This workflow performs no company creation, diligence execution or paid run; Alpha Founder owns those decisions.
+Downloads use MediaIoBaseDownload into an automatically removed temporary file with an enforced byte ceiling and running SHA-256; metadata is rechecked before upload to detect source changes. Google and upload I/O use 60-second socket timeouts and at most three attempts for transient errors. .144 ignores `ctx.step` retry/timeout arguments, so none are relied on here. Discovery and completed per-file acquisitions are checkpointed. A crash after an upload but before checkpoint completion may repeat the PUT: identical bytes converge on the existing source slot; changed bytes are rejected, not overwritten. A new sync is required for recorded failures. This workflow performs no company creation, diligence execution or paid run; Carrythrough owns those decisions.
 
 ### Provider-free tests
 
@@ -57,7 +57,7 @@ uv run --no-project --with pytest --with jsonschema --with google-api-python-cli
 
 ### Separate retained-host mount
 
-The name `retained-host/workflows/` is a deployment boundary, not a Centaur convention: only the retained host mounts it. Keep Studio intake in the existing `workflows/` tree. **Do not mount that existing overlay tree at this new ref on the retained host**: with `WORKFLOW_ENABLE_MODE=all`, `drive_intake.py` declares the Studio-only `alpha-founder-drive-intake` principal, and an unknown principal fails workflow startup.
+The name `retained-host/workflows/` is a deployment boundary, not a Centaur convention: only the retained host mounts it. Keep Studio intake in the existing `workflows/` tree. **Do not mount that existing overlay tree at this new ref on the retained host**: with `WORKFLOW_ENABLE_MODE=all`, `drive_intake.py` declares the Studio-only `carrythrough-drive-intake` principal, and an unknown principal fails workflow startup.
 
 Create the feed principal before loading the new workflows. Set these exact api-rs environment values, preserving Centaur's native workflow tree:
 
