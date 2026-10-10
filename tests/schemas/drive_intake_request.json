@@ -88,8 +88,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "alpha-founder.drive-intake-request.v1",
-      "default": "alpha-founder.drive-intake-request.v1",
+      "enum": [
+        "carrythrough.drive-intake-request.v1",
+        "alpha-founder.drive-intake-request.v1"
+      ],
+      "default": "carrythrough.drive-intake-request.v1",
       "title": "Schema Version",
       "type": "string"
     },
